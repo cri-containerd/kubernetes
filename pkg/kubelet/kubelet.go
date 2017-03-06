@@ -62,6 +62,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cm"
 	"k8s.io/kubernetes/pkg/kubelet/config"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/kubernetes/pkg/kubelet/containerdshim"
+	containerdremote "k8s.io/kubernetes/pkg/kubelet/containerdshim/remote"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim"
 	dockerremote "k8s.io/kubernetes/pkg/kubelet/dockershim/remote"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
@@ -549,6 +551,48 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 		klet.networkPlugin = nil
 
 		switch kubeCfg.ContainerRuntime {
+		case "containerd":
+			glog.V(2).Infof("Mikebrow *****: configuring for the containerd CRI shim")
+			cdPluginSettings := containerdshim.NetworkPluginSettings{
+				HairpinMode:       klet.hairpinMode,
+				NonMasqueradeCIDR: klet.nonMasqueradeCIDR,
+				PluginName:        kubeCfg.NetworkPluginName,
+				PluginConfDir:     kubeCfg.CNIConfDir,
+				PluginBinDir:      binDir,
+				MTU:               int(kubeCfg.NetworkPluginMTU),
+			}
+			// Remote runtime shim just cannot talk back to kubelet, so it doesn't
+			// support bandwidth shaping or hostports till #35457. To enable legacy
+			// features, replace with networkHost.
+			cdPluginSettings.LegacyRuntimeHost = nl
+			glog.V(2).Infof("Mikebrow *****: calling getStreamingConfig")
+			// Create and start the CRI shim running as a grpc server.
+			streamingConfig := getStreamingConfig(kubeCfg, kubeDeps)
+			glog.V(2).Infof("Mikebrow *****: calling containerdshim.NewDockerService with %v", klet.dockerClient)
+			cds, err := containerdshim.NewDockerService(klet.dockerClient, kubeCfg.SeccompProfileRoot, kubeCfg.PodInfraContainerImage,
+				streamingConfig, &cdPluginSettings, kubeCfg.RuntimeCgroups, kubeCfg.CgroupDriver, dockerExecHandler)
+			if err != nil {
+				return nil, err
+			}
+			glog.V(2).Infof("Mikebrow *****: calling cds.Start()")
+			if err := cds.Start(); err != nil {
+				return nil, err
+			}
+			// For now, the CRI shim redirects the streaming requests to the
+			// kubelet, which handles the requests using DockerService..
+			klet.criHandler = cds
+
+			const (
+				// The unix socket for kubelet <-> containerdshim communication.
+				ep = "/var/run/containerdshim.sock"
+			)
+			kubeCfg.RemoteRuntimeEndpoint, kubeCfg.RemoteImageEndpoint = ep, ep
+
+			glog.V(2).Infof("Starting the GRPC server for the containerd CRI shim.")
+			server := containerdremote.NewDockerServer(ep, cds)
+			if err := server.Start(); err != nil {
+				return nil, err
+			}
 		case "docker":
 			// Create and start the CRI shim running as a grpc server.
 			streamingConfig := getStreamingConfig(kubeCfg, kubeDeps)
