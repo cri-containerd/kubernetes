@@ -63,7 +63,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/config"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/containerdshim"
-	containerdremote "k8s.io/kubernetes/pkg/kubelet/containerdshim/remote"
+	cdsdockerremote "k8s.io/kubernetes/pkg/kubelet/containerdshim/remote"
+	libcontainerd "k8s.io/kubernetes/pkg/kubelet/containerdtools"
 	"k8s.io/kubernetes/pkg/kubelet/dockershim"
 	dockerremote "k8s.io/kubernetes/pkg/kubelet/dockershim/remote"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
@@ -589,10 +590,37 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 			kubeCfg.RemoteRuntimeEndpoint, kubeCfg.RemoteImageEndpoint = ep, ep
 
 			glog.V(2).Infof("Starting the GRPC server for the containerd CRI shim.")
-			server := containerdremote.NewDockerServer(ep, cds)
+			server := cdsdockerremote.NewDockerServer(ep, cds)
 			if err := server.Start(); err != nil {
 				return nil, err
 			}
+
+			glog.V(2).Infof("Mikebrow *****: Getting remote to containerd.")
+			opts := []libcontainerd.RemoteOption{ //mikebrow need to get the kublet config for these variables and open issues for unsupported features
+				libcontainerd.WithDebugLog(false),
+				libcontainerd.WithOOMScore(0),
+			}
+			//if cli.Config.ContainerdAddr != "" {
+			//	opts = append(opts, libcontainerd.WithRemoteAddr(cli.Config.ContainerdAddr))
+			//} else {
+			opts = append(opts, libcontainerd.WithStartDaemon(true))
+			//}
+			//if daemon.UsingSystemd(cli.Config) {
+			//	args := []string{"--systemd-cgroup=true"}
+			//	opts = append(opts, libcontainerd.WithRuntimeArgs(args))
+			//}
+			//if cli.Config.LiveRestoreEnabled {
+			//	opts = append(opts, libcontainerd.WithLiveRestore(true))
+			//}
+			opts = append(opts, libcontainerd.WithRuntimePath("docker-runc"))
+
+			containerdRemote, err := libcontainerd.New("/var/lib/docker/libcontainerd", opts...)
+			if err != nil {
+				return err
+			}
+			//containerdRemote.Cleanup() // mikebrow todo: best place to cleanup the containerdRemote
+			glog.V(2).Infof("Mikebrow *****: Remote to containerd obtained...")
+
 		case "docker":
 			// Create and start the CRI shim running as a grpc server.
 			streamingConfig := getStreamingConfig(kubeCfg, kubeDeps)
