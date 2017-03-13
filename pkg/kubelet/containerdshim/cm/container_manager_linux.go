@@ -30,7 +30,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubecm "k8s.io/kubernetes/pkg/kubelet/cm"
-	libcontainerd "k8s.io/kubernetes/pkg/kubelet/containerdtools"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/qos"
 	utilversion "k8s.io/kubernetes/pkg/util/version"
@@ -51,19 +50,16 @@ var (
 	memoryCapacityRegexp = regexp.MustCompile(`MemTotal:\s*([0-9]+) kB`)
 )
 
-func NewContainerManager(cgroupsName string, client dockertools.DockerInterface, cdClient libcontainerd.Client) ContainerManager {
+func NewContainerManager(cgroupsName string, client dockertools.DockerInterface) ContainerManager {
 	return &containerManager{
 		cgroupsName: cgroupsName,
 		client:      client,
-		cdClient:    cdClient,
 	}
 }
 
 type containerManager struct {
-	// containerd client
-	cdClient libcontainerd.Client
 	// Docker client.
-	client dockertools.DockerInterface // mikebrow remove DockerInterface when not needed
+	client dockertools.DockerInterface
 	// Name of the cgroups.
 	cgroupsName string
 	// Manager for the cgroups.

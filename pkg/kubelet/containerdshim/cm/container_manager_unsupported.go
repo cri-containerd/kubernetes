@@ -21,14 +21,13 @@ package cm
 import (
 	"fmt"
 
-	libcontainerd "k8s.io/kubernetes/pkg/kubelet/containerdtools"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 )
 
 type unsupportedContainerManager struct {
 }
 
-func NewContainerManager(_ string, _ dockertools.DockerInterface, _ libcontainerd.Client) ContainerManager {
+func NewContainerManager(_ string, _ dockertools.DockerInterface) ContainerManager {
 	return &unsupportedContainerManager{}
 }
 
