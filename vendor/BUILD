@@ -1108,6 +1108,7 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
     name = "github.com/codedellemc/goscaleio",
     srcs = [
         "github.com/codedellemc/goscaleio/api.go",
@@ -1137,6 +1138,8 @@ go_library(
 )
 
 go_library(
+=======
+>>>>>>> Update godep license and bazel
     name = "github.com/codegangsta/negroni",
     srcs = [
         "github.com/codegangsta/negroni/doc.go",
@@ -1211,6 +1214,10 @@ go_library(
         "//vendor:github.com/coreos/pkg/capnslog",
         "//vendor:golang.org/x/crypto/bcrypt",
         "//vendor:golang.org/x/net/context",
+<<<<<<< HEAD
+=======
+        "//vendor:google.golang.org/grpc/metadata",
+>>>>>>> Update godep license and bazel
     ],
 )
 
@@ -1276,8 +1283,15 @@ go_library(
         "//vendor:github.com/coreos/etcd/mvcc/mvccpb",
         "//vendor:github.com/coreos/etcd/pkg/tlsutil",
         "//vendor:github.com/ghodss/yaml",
+<<<<<<< HEAD
         "//vendor:golang.org/x/net/context",
         "//vendor:google.golang.org/grpc",
+=======
+        "//vendor:github.com/grpc-ecosystem/go-grpc-prometheus",
+        "//vendor:golang.org/x/net/context",
+        "//vendor:google.golang.org/grpc",
+        "//vendor:google.golang.org/grpc/codes",
+>>>>>>> Update godep license and bazel
         "//vendor:google.golang.org/grpc/credentials",
         "//vendor:google.golang.org/grpc/grpclog",
         "//vendor:google.golang.org/grpc/metadata",
@@ -1384,7 +1398,10 @@ go_library(
         "//vendor:github.com/gogo/protobuf/proto",
         "//vendor:github.com/prometheus/client_golang/prometheus",
         "//vendor:golang.org/x/net/context",
+<<<<<<< HEAD
         "//vendor:google.golang.org/grpc/metadata",
+=======
+>>>>>>> Update godep license and bazel
     ],
 )
 
@@ -1487,6 +1504,10 @@ go_library(
         "//vendor:github.com/coreos/etcd/version",
         "//vendor:github.com/coreos/pkg/capnslog",
         "//vendor:github.com/gogo/protobuf/proto",
+<<<<<<< HEAD
+=======
+        "//vendor:github.com/grpc-ecosystem/go-grpc-prometheus",
+>>>>>>> Update godep license and bazel
         "//vendor:github.com/prometheus/client_golang/prometheus",
         "//vendor:golang.org/x/net/context",
         "//vendor:google.golang.org/grpc",
@@ -1571,6 +1592,10 @@ go_library(
         "//vendor:github.com/coreos/etcd/version",
         "//vendor:github.com/coreos/go-semver/semver",
         "//vendor:github.com/coreos/pkg/capnslog",
+<<<<<<< HEAD
+=======
+        "//vendor:golang.org/x/net/context",
+>>>>>>> Update godep license and bazel
     ],
 )
 
@@ -1594,6 +1619,10 @@ go_library(
     srcs = [
         "github.com/coreos/etcd/integration/bridge.go",
         "github.com/coreos/etcd/integration/cluster.go",
+<<<<<<< HEAD
+=======
+        "github.com/coreos/etcd/integration/cluster_direct.go",
+>>>>>>> Update godep license and bazel
         "github.com/coreos/etcd/integration/doc.go",
     ],
     tags = ["automanaged"],
@@ -1625,6 +1654,10 @@ go_library(
     deps = [
         "//vendor:github.com/coreos/etcd/lease/leasepb",
         "//vendor:github.com/coreos/etcd/mvcc/backend",
+<<<<<<< HEAD
+=======
+        "//vendor:github.com/coreos/etcd/pkg/monotime",
+>>>>>>> Update godep license and bazel
     ],
 )
 
@@ -1638,6 +1671,11 @@ go_library(
     deps = [
         "//vendor:github.com/coreos/etcd/etcdserver/etcdserverpb",
         "//vendor:github.com/coreos/etcd/lease",
+<<<<<<< HEAD
+=======
+        "//vendor:github.com/coreos/etcd/lease/leasepb",
+        "//vendor:github.com/coreos/etcd/pkg/httputil",
+>>>>>>> Update godep license and bazel
         "//vendor:golang.org/x/net/context",
     ],
 )
@@ -1646,7 +1684,14 @@ go_library(
     name = "github.com/coreos/etcd/lease/leasepb",
     srcs = ["github.com/coreos/etcd/lease/leasepb/lease.pb.go"],
     tags = ["automanaged"],
+<<<<<<< HEAD
     deps = ["//vendor:github.com/golang/protobuf/proto"],
+=======
+    deps = [
+        "//vendor:github.com/coreos/etcd/etcdserver/etcdserverpb",
+        "//vendor:github.com/golang/protobuf/proto",
+    ],
+>>>>>>> Update godep license and bazel
 )
 
 go_library(
@@ -1722,6 +1767,18 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/coreos/etcd/pkg/cpuutil",
+    srcs = [
+        "github.com/coreos/etcd/pkg/cpuutil/doc.go",
+        "github.com/coreos/etcd/pkg/cpuutil/endian.go",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/coreos/etcd/pkg/crc",
     srcs = ["github.com/coreos/etcd/pkg/crc/crc.go"],
     tags = ["automanaged"],
@@ -1776,15 +1833,39 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/coreos/etcd/pkg/monotime",
+    srcs = [
+        "github.com/coreos/etcd/pkg/monotime/issue15006.s",
+        "github.com/coreos/etcd/pkg/monotime/monotime.go",
+        "github.com/coreos/etcd/pkg/monotime/nanotime.go",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/coreos/etcd/pkg/netutil",
     srcs = [
         "github.com/coreos/etcd/pkg/netutil/isolate_linux.go",
         "github.com/coreos/etcd/pkg/netutil/netutil.go",
+<<<<<<< HEAD
     ],
     tags = ["automanaged"],
     deps = [
         "//vendor:github.com/coreos/etcd/pkg/types",
         "//vendor:github.com/coreos/pkg/capnslog",
+=======
+        "github.com/coreos/etcd/pkg/netutil/routes_linux.go",
+    ],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/coreos/etcd/pkg/cpuutil",
+        "//vendor:github.com/coreos/etcd/pkg/types",
+        "//vendor:github.com/coreos/pkg/capnslog",
+        "//vendor:golang.org/x/net/context",
+>>>>>>> Update godep license and bazel
     ],
 )
 
@@ -1882,6 +1963,56 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/coreos/etcd/proxy/grpcproxy",
+    srcs = [
+        "github.com/coreos/etcd/proxy/grpcproxy/auth.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/cluster.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/doc.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/kv.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/kv_client_adapter.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/lease.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/maintenance.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/metrics.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/watch.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/watch_broadcast.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/watch_broadcasts.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/watch_client_adapter.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/watch_ranges.go",
+        "github.com/coreos/etcd/proxy/grpcproxy/watcher.go",
+    ],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/coreos/etcd/clientv3",
+        "//vendor:github.com/coreos/etcd/etcdserver/api/v3rpc",
+        "//vendor:github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes",
+        "//vendor:github.com/coreos/etcd/etcdserver/etcdserverpb",
+        "//vendor:github.com/coreos/etcd/mvcc",
+        "//vendor:github.com/coreos/etcd/mvcc/mvccpb",
+        "//vendor:github.com/coreos/etcd/proxy/grpcproxy/cache",
+        "//vendor:github.com/prometheus/client_golang/prometheus",
+        "//vendor:golang.org/x/net/context",
+        "//vendor:golang.org/x/time/rate",
+        "//vendor:google.golang.org/grpc",
+        "//vendor:google.golang.org/grpc/metadata",
+    ],
+)
+
+go_library(
+    name = "github.com/coreos/etcd/proxy/grpcproxy/cache",
+    srcs = ["github.com/coreos/etcd/proxy/grpcproxy/cache/store.go"],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes",
+        "//vendor:github.com/coreos/etcd/etcdserver/etcdserverpb",
+        "//vendor:github.com/coreos/etcd/pkg/adt",
+        "//vendor:github.com/karlseguin/ccache",
+    ],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/coreos/etcd/raft",
     srcs = [
         "github.com/coreos/etcd/raft/doc.go",
@@ -1892,6 +2023,10 @@ go_library(
         "github.com/coreos/etcd/raft/progress.go",
         "github.com/coreos/etcd/raft/raft.go",
         "github.com/coreos/etcd/raft/rawnode.go",
+<<<<<<< HEAD
+=======
+        "github.com/coreos/etcd/raft/read_only.go",
+>>>>>>> Update godep license and bazel
         "github.com/coreos/etcd/raft/status.go",
         "github.com/coreos/etcd/raft/storage.go",
         "github.com/coreos/etcd/raft/util.go",
@@ -2008,10 +2143,14 @@ go_library(
     name = "github.com/coreos/etcd/version",
     srcs = ["github.com/coreos/etcd/version/version.go"],
     tags = ["automanaged"],
+<<<<<<< HEAD
     deps = [
         "//vendor:github.com/coreos/etcd/pkg/fileutil",
         "//vendor:github.com/coreos/etcd/pkg/types",
     ],
+=======
+    deps = ["//vendor:github.com/coreos/go-semver/semver"],
+>>>>>>> Update godep license and bazel
 )
 
 go_library(
@@ -2055,7 +2194,10 @@ go_library(
     name = "github.com/coreos/go-oidc/http",
     srcs = [
         "github.com/coreos/go-oidc/http/client.go",
+<<<<<<< HEAD
         "github.com/coreos/go-oidc/http/doc.go",
+=======
+>>>>>>> Update godep license and bazel
         "github.com/coreos/go-oidc/http/http.go",
         "github.com/coreos/go-oidc/http/url.go",
     ],
@@ -2066,12 +2208,19 @@ go_library(
     name = "github.com/coreos/go-oidc/jose",
     srcs = [
         "github.com/coreos/go-oidc/jose/claims.go",
+<<<<<<< HEAD
         "github.com/coreos/go-oidc/jose/doc.go",
+=======
+>>>>>>> Update godep license and bazel
         "github.com/coreos/go-oidc/jose/jose.go",
         "github.com/coreos/go-oidc/jose/jwk.go",
         "github.com/coreos/go-oidc/jose/jws.go",
         "github.com/coreos/go-oidc/jose/jwt.go",
         "github.com/coreos/go-oidc/jose/sig.go",
+<<<<<<< HEAD
+=======
+        "github.com/coreos/go-oidc/jose/sig_hmac.go",
+>>>>>>> Update godep license and bazel
         "github.com/coreos/go-oidc/jose/sig_rsa.go",
     ],
     tags = ["automanaged"],
@@ -2080,7 +2229,10 @@ go_library(
 go_library(
     name = "github.com/coreos/go-oidc/key",
     srcs = [
+<<<<<<< HEAD
         "github.com/coreos/go-oidc/key/doc.go",
+=======
+>>>>>>> Update godep license and bazel
         "github.com/coreos/go-oidc/key/key.go",
         "github.com/coreos/go-oidc/key/manager.go",
         "github.com/coreos/go-oidc/key/repo.go",
@@ -2099,7 +2251,10 @@ go_library(
 go_library(
     name = "github.com/coreos/go-oidc/oauth2",
     srcs = [
+<<<<<<< HEAD
         "github.com/coreos/go-oidc/oauth2/doc.go",
+=======
+>>>>>>> Update godep license and bazel
         "github.com/coreos/go-oidc/oauth2/error.go",
         "github.com/coreos/go-oidc/oauth2/oauth2.go",
     ],
@@ -2111,7 +2266,10 @@ go_library(
     name = "github.com/coreos/go-oidc/oidc",
     srcs = [
         "github.com/coreos/go-oidc/oidc/client.go",
+<<<<<<< HEAD
         "github.com/coreos/go-oidc/oidc/doc.go",
+=======
+>>>>>>> Update godep license and bazel
         "github.com/coreos/go-oidc/oidc/identity.go",
         "github.com/coreos/go-oidc/oidc/interface.go",
         "github.com/coreos/go-oidc/oidc/key.go",
@@ -2323,6 +2481,75 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/docker/containerd/api/services/content",
+    srcs = ["github.com/docker/containerd/api/services/content/content.pb.go"],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/gogo/protobuf/gogoproto",
+        "//vendor:github.com/gogo/protobuf/proto",
+        "//vendor:github.com/gogo/protobuf/types",
+        "//vendor:github.com/golang/protobuf/ptypes/empty",
+        "//vendor:github.com/opencontainers/go-digest",
+        "//vendor:golang.org/x/net/context",
+        "//vendor:google.golang.org/grpc",
+    ],
+)
+
+go_library(
+    name = "github.com/docker/containerd/api/services/execution",
+    srcs = ["github.com/docker/containerd/api/services/execution/execution.pb.go"],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/docker/containerd/api/types/container",
+        "//vendor:github.com/docker/containerd/api/types/mount",
+        "//vendor:github.com/gogo/protobuf/gogoproto",
+        "//vendor:github.com/gogo/protobuf/proto",
+        "//vendor:github.com/gogo/protobuf/types",
+        "//vendor:github.com/golang/protobuf/ptypes/empty",
+        "//vendor:golang.org/x/net/context",
+        "//vendor:google.golang.org/grpc",
+    ],
+)
+
+go_library(
+    name = "github.com/docker/containerd/api/services/shim",
+    srcs = ["github.com/docker/containerd/api/services/shim/shim.pb.go"],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/docker/containerd/api/types/container",
+        "//vendor:github.com/docker/containerd/api/types/mount",
+        "//vendor:github.com/gogo/protobuf/gogoproto",
+        "//vendor:github.com/gogo/protobuf/proto",
+        "//vendor:github.com/golang/protobuf/ptypes/empty",
+        "//vendor:golang.org/x/net/context",
+        "//vendor:google.golang.org/grpc",
+    ],
+)
+
+go_library(
+    name = "github.com/docker/containerd/api/types/container",
+    srcs = ["github.com/docker/containerd/api/types/container/container.pb.go"],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/gogo/protobuf/gogoproto",
+        "//vendor:github.com/gogo/protobuf/proto",
+    ],
+)
+
+go_library(
+    name = "github.com/docker/containerd/api/types/mount",
+    srcs = ["github.com/docker/containerd/api/types/mount/mount.pb.go"],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/gogo/protobuf/gogoproto",
+        "//vendor:github.com/gogo/protobuf/proto",
+    ],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/docker/distribution/digest",
     srcs = [
         "github.com/docker/distribution/digest/digest.go",
@@ -3310,6 +3537,11 @@ go_library(
         "github.com/gogo/protobuf/proto/clone.go",
         "github.com/gogo/protobuf/proto/decode.go",
         "github.com/gogo/protobuf/proto/decode_gogo.go",
+<<<<<<< HEAD
+=======
+        "github.com/gogo/protobuf/proto/duration.go",
+        "github.com/gogo/protobuf/proto/duration_gogo.go",
+>>>>>>> Update godep license and bazel
         "github.com/gogo/protobuf/proto/encode.go",
         "github.com/gogo/protobuf/proto/encode_gogo.go",
         "github.com/gogo/protobuf/proto/equal.go",
@@ -3326,6 +3558,11 @@ go_library(
         "github.com/gogo/protobuf/proto/text.go",
         "github.com/gogo/protobuf/proto/text_gogo.go",
         "github.com/gogo/protobuf/proto/text_parser.go",
+<<<<<<< HEAD
+=======
+        "github.com/gogo/protobuf/proto/timestamp.go",
+        "github.com/gogo/protobuf/proto/timestamp_gogo.go",
+>>>>>>> Update godep license and bazel
     ],
     tags = ["automanaged"],
 )
@@ -3333,8 +3570,14 @@ go_library(
 go_library(
     name = "github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
     srcs = [
+<<<<<<< HEAD
         "github.com/gogo/protobuf/protoc-gen-gogo/descriptor/descriptor.pb.go",
         "github.com/gogo/protobuf/protoc-gen-gogo/descriptor/gostring.go",
+=======
+        "github.com/gogo/protobuf/protoc-gen-gogo/descriptor/descriptor.go",
+        "github.com/gogo/protobuf/protoc-gen-gogo/descriptor/descriptor.pb.go",
+        "github.com/gogo/protobuf/protoc-gen-gogo/descriptor/descriptor_gostring.gen.go",
+>>>>>>> Update godep license and bazel
         "github.com/gogo/protobuf/protoc-gen-gogo/descriptor/helper.go",
     ],
     tags = ["automanaged"],
@@ -3383,6 +3626,33 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/gogo/protobuf/types",
+    srcs = [
+        "github.com/gogo/protobuf/types/any.go",
+        "github.com/gogo/protobuf/types/any.pb.go",
+        "github.com/gogo/protobuf/types/doc.go",
+        "github.com/gogo/protobuf/types/duration.go",
+        "github.com/gogo/protobuf/types/duration.pb.go",
+        "github.com/gogo/protobuf/types/duration_gogo.go",
+        "github.com/gogo/protobuf/types/empty.pb.go",
+        "github.com/gogo/protobuf/types/field_mask.pb.go",
+        "github.com/gogo/protobuf/types/struct.pb.go",
+        "github.com/gogo/protobuf/types/timestamp.go",
+        "github.com/gogo/protobuf/types/timestamp.pb.go",
+        "github.com/gogo/protobuf/types/timestamp_gogo.go",
+        "github.com/gogo/protobuf/types/wrappers.pb.go",
+    ],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/gogo/protobuf/proto",
+        "//vendor:github.com/gogo/protobuf/sortkeys",
+    ],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/gogo/protobuf/vanity",
     srcs = [
         "github.com/gogo/protobuf/vanity/enum.go",
@@ -3479,6 +3749,16 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/golang/protobuf/ptypes/empty",
+    srcs = ["github.com/golang/protobuf/ptypes/empty/empty.pb.go"],
+    tags = ["automanaged"],
+    deps = ["//vendor:github.com/golang/protobuf/proto"],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/google/btree",
     srcs = ["github.com/google/btree/btree.go"],
     tags = ["automanaged"],
@@ -4546,6 +4826,27 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/grpc-ecosystem/go-grpc-prometheus",
+    srcs = [
+        "github.com/grpc-ecosystem/go-grpc-prometheus/client.go",
+        "github.com/grpc-ecosystem/go-grpc-prometheus/client_reporter.go",
+        "github.com/grpc-ecosystem/go-grpc-prometheus/server.go",
+        "github.com/grpc-ecosystem/go-grpc-prometheus/server_reporter.go",
+        "github.com/grpc-ecosystem/go-grpc-prometheus/util.go",
+    ],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:github.com/prometheus/client_golang/prometheus",
+        "//vendor:golang.org/x/net/context",
+        "//vendor:google.golang.org/grpc",
+        "//vendor:google.golang.org/grpc/codes",
+    ],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/grpc-ecosystem/grpc-gateway/runtime",
     srcs = [
         "github.com/grpc-ecosystem/grpc-gateway/runtime/context.go",
@@ -4791,6 +5092,7 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
     name = "github.com/influxdata/influxdb/client/v2",
     srcs = [
         "github.com/influxdata/influxdb/client/v2/client.go",
@@ -4809,6 +5111,13 @@ go_library(
         "github.com/influxdata/influxdb/models/points.go",
         "github.com/influxdata/influxdb/models/rows.go",
         "github.com/influxdata/influxdb/models/statistic.go",
+=======
+    name = "github.com/influxdata/influxdb/models",
+    srcs = [
+        "github.com/influxdata/influxdb/models/consistency.go",
+        "github.com/influxdata/influxdb/models/points.go",
+        "github.com/influxdata/influxdb/models/rows.go",
+>>>>>>> Update godep license and bazel
         "github.com/influxdata/influxdb/models/time.go",
     ],
     tags = ["automanaged"],
@@ -4898,6 +5207,23 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/karlseguin/ccache",
+    srcs = [
+        "github.com/karlseguin/ccache/bucket.go",
+        "github.com/karlseguin/ccache/cache.go",
+        "github.com/karlseguin/ccache/configuration.go",
+        "github.com/karlseguin/ccache/item.go",
+        "github.com/karlseguin/ccache/layeredbucket.go",
+        "github.com/karlseguin/ccache/layeredcache.go",
+        "github.com/karlseguin/ccache/secondarycache.go",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/kr/fs",
     srcs = [
         "github.com/kr/fs/filesystem.go",
@@ -5705,6 +6031,21 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "github.com/opencontainers/go-digest",
+    srcs = [
+        "github.com/opencontainers/go-digest/algorithm.go",
+        "github.com/opencontainers/go-digest/digest.go",
+        "github.com/opencontainers/go-digest/digester.go",
+        "github.com/opencontainers/go-digest/doc.go",
+        "github.com/opencontainers/go-digest/verifiers.go",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "github.com/opencontainers/runc/libcontainer",
     srcs = [
         "github.com/opencontainers/runc/libcontainer/capabilities_linux.go",
@@ -7144,18 +7485,25 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
     name = "github.com/vmware/photon-controller-go-sdk/SSPI",
     srcs = ["github.com/vmware/photon-controller-go-sdk/SSPI/sspi_unsupported.go"],
     tags = ["automanaged"],
 )
 
 go_library(
+=======
+>>>>>>> Update godep license and bazel
     name = "github.com/vmware/photon-controller-go-sdk/photon",
     srcs = [
         "github.com/vmware/photon-controller-go-sdk/photon/apitypes.go",
         "github.com/vmware/photon-controller-go-sdk/photon/auth.go",
         "github.com/vmware/photon-controller-go-sdk/photon/availabilityzones.go",
         "github.com/vmware/photon-controller-go-sdk/photon/client.go",
+<<<<<<< HEAD
+=======
+        "github.com/vmware/photon-controller-go-sdk/photon/clusters.go",
+>>>>>>> Update godep license and bazel
         "github.com/vmware/photon-controller-go-sdk/photon/deployments.go",
         "github.com/vmware/photon-controller-go-sdk/photon/disks.go",
         "github.com/vmware/photon-controller-go-sdk/photon/flavors.go",
@@ -7166,10 +7514,14 @@ go_library(
         "github.com/vmware/photon-controller-go-sdk/photon/projects.go",
         "github.com/vmware/photon-controller-go-sdk/photon/resourcetickets.go",
         "github.com/vmware/photon-controller-go-sdk/photon/restclient.go",
+<<<<<<< HEAD
         "github.com/vmware/photon-controller-go-sdk/photon/routers.go",
         "github.com/vmware/photon-controller-go-sdk/photon/services.go",
         "github.com/vmware/photon-controller-go-sdk/photon/status.go",
         "github.com/vmware/photon-controller-go-sdk/photon/subnets.go",
+=======
+        "github.com/vmware/photon-controller-go-sdk/photon/status.go",
+>>>>>>> Update godep license and bazel
         "github.com/vmware/photon-controller-go-sdk/photon/tasks.go",
         "github.com/vmware/photon-controller-go-sdk/photon/tenants.go",
         "github.com/vmware/photon-controller-go-sdk/photon/util.go",
@@ -7185,7 +7537,10 @@ go_library(
     srcs = [
         "github.com/vmware/photon-controller-go-sdk/photon/lightwave/jwttoken.go",
         "github.com/vmware/photon-controller-go-sdk/photon/lightwave/oidcclient.go",
+<<<<<<< HEAD
         "github.com/vmware/photon-controller-go-sdk/photon/lightwave/oidcclient_sspi_unsupported.go",
+=======
+>>>>>>> Update godep license and bazel
     ],
     tags = ["automanaged"],
 )
@@ -7839,6 +8194,16 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "golang.org/x/time/rate",
+    srcs = ["golang.org/x/time/rate/rate.go"],
+    tags = ["automanaged"],
+    deps = ["//vendor:golang.org/x/net/context"],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "google.golang.org/api/cloudmonitoring/v2beta2",
     srcs = ["google.golang.org/api/cloudmonitoring/v2beta2/cloudmonitoring-gen.go"],
     tags = ["automanaged"],
@@ -8051,6 +8416,11 @@ go_library(
         "//vendor:google.golang.org/grpc/internal",
         "//vendor:google.golang.org/grpc/metadata",
         "//vendor:google.golang.org/grpc/naming",
+<<<<<<< HEAD
+=======
+        "//vendor:google.golang.org/grpc/stats",
+        "//vendor:google.golang.org/grpc/tap",
+>>>>>>> Update godep license and bazel
         "//vendor:google.golang.org/grpc/transport",
     ],
 )
@@ -8110,6 +8480,29 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
+=======
+    name = "google.golang.org/grpc/stats",
+    srcs = [
+        "google.golang.org/grpc/stats/handlers.go",
+        "google.golang.org/grpc/stats/stats.go",
+    ],
+    tags = ["automanaged"],
+    deps = [
+        "//vendor:golang.org/x/net/context",
+        "//vendor:google.golang.org/grpc/grpclog",
+    ],
+)
+
+go_library(
+    name = "google.golang.org/grpc/tap",
+    srcs = ["google.golang.org/grpc/tap/tap.go"],
+    tags = ["automanaged"],
+    deps = ["//vendor:golang.org/x/net/context"],
+)
+
+go_library(
+>>>>>>> Update godep license and bazel
     name = "google.golang.org/grpc/transport",
     srcs = [
         "google.golang.org/grpc/transport/control.go",
@@ -8125,12 +8518,20 @@ go_library(
         "//vendor:golang.org/x/net/context",
         "//vendor:golang.org/x/net/http2",
         "//vendor:golang.org/x/net/http2/hpack",
+<<<<<<< HEAD
         "//vendor:golang.org/x/net/trace",
+=======
+>>>>>>> Update godep license and bazel
         "//vendor:google.golang.org/grpc/codes",
         "//vendor:google.golang.org/grpc/credentials",
         "//vendor:google.golang.org/grpc/grpclog",
         "//vendor:google.golang.org/grpc/metadata",
         "//vendor:google.golang.org/grpc/peer",
+<<<<<<< HEAD
+=======
+        "//vendor:google.golang.org/grpc/stats",
+        "//vendor:google.golang.org/grpc/tap",
+>>>>>>> Update godep license and bazel
     ],
 )
 
@@ -9692,10 +10093,14 @@ go_test(
 
 go_library(
     name = "k8s.io/apiserver/pkg/authentication/group",
+<<<<<<< HEAD
     srcs = [
         "k8s.io/apiserver/pkg/authentication/group/authenticated_group_adder.go",
         "k8s.io/apiserver/pkg/authentication/group/group_adder.go",
     ],
+=======
+    srcs = ["k8s.io/apiserver/pkg/authentication/group/group_adder.go"],
+>>>>>>> Update godep license and bazel
     tags = ["automanaged"],
     deps = [
         "//vendor:k8s.io/apiserver/pkg/authentication/authenticator",
@@ -10081,7 +10486,10 @@ go_library(
         "//vendor:k8s.io/apimachinery/pkg/runtime/serializer/streaming",
         "//vendor:k8s.io/apimachinery/pkg/types",
         "//vendor:k8s.io/apimachinery/pkg/util/httpstream",
+<<<<<<< HEAD
         "//vendor:k8s.io/apimachinery/pkg/util/json",
+=======
+>>>>>>> Update godep license and bazel
         "//vendor:k8s.io/apimachinery/pkg/util/mergepatch",
         "//vendor:k8s.io/apimachinery/pkg/util/net",
         "//vendor:k8s.io/apimachinery/pkg/util/runtime",
@@ -10162,6 +10570,7 @@ go_library(
     ],
 )
 
+<<<<<<< HEAD
 go_test(
     name = "k8s.io/apiserver/pkg/endpoints/metrics_test",
     srcs = ["k8s.io/apiserver/pkg/endpoints/metrics/metrics_test.go"],
@@ -10169,6 +10578,8 @@ go_test(
     tags = ["automanaged"],
 )
 
+=======
+>>>>>>> Update godep license and bazel
 go_library(
     name = "k8s.io/apiserver/pkg/endpoints/metrics",
     srcs = ["k8s.io/apiserver/pkg/endpoints/metrics/metrics.go"],
@@ -10574,9 +10985,13 @@ go_test(
     tags = ["automanaged"],
     deps = [
         "//vendor:k8s.io/apimachinery/pkg/api/errors",
+<<<<<<< HEAD
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
         "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
         "//vendor:k8s.io/apimachinery/pkg/util/diff",
+=======
+        "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
+>>>>>>> Update godep license and bazel
         "//vendor:k8s.io/apimachinery/pkg/util/sets",
         "//vendor:k8s.io/apiserver/pkg/endpoints/filters",
         "//vendor:k8s.io/apiserver/pkg/endpoints/request",
@@ -11952,6 +12367,10 @@ go_library(
     srcs = [
         "k8s.io/client-go/informers/batch/v2alpha1/cronjob.go",
         "k8s.io/client-go/informers/batch/v2alpha1/interface.go",
+<<<<<<< HEAD
+=======
+        "k8s.io/client-go/informers/batch/v2alpha1/job.go",
+>>>>>>> Update godep license and bazel
     ],
     tags = ["automanaged"],
     deps = [
@@ -12729,6 +13148,10 @@ go_library(
         "k8s.io/client-go/kubernetes/typed/batch/v2alpha1/cronjob.go",
         "k8s.io/client-go/kubernetes/typed/batch/v2alpha1/doc.go",
         "k8s.io/client-go/kubernetes/typed/batch/v2alpha1/generated_expansion.go",
+<<<<<<< HEAD
+=======
+        "k8s.io/client-go/kubernetes/typed/batch/v2alpha1/job.go",
+>>>>>>> Update godep license and bazel
     ],
     tags = ["automanaged"],
     deps = [
@@ -12748,6 +13171,10 @@ go_library(
         "k8s.io/client-go/kubernetes/typed/batch/v2alpha1/fake/doc.go",
         "k8s.io/client-go/kubernetes/typed/batch/v2alpha1/fake/fake_batch_client.go",
         "k8s.io/client-go/kubernetes/typed/batch/v2alpha1/fake/fake_cronjob.go",
+<<<<<<< HEAD
+=======
+        "k8s.io/client-go/kubernetes/typed/batch/v2alpha1/fake/fake_job.go",
+>>>>>>> Update godep license and bazel
     ],
     tags = ["automanaged"],
     deps = [
@@ -13294,6 +13721,10 @@ go_library(
     srcs = [
         "k8s.io/client-go/listers/batch/v2alpha1/cronjob.go",
         "k8s.io/client-go/listers/batch/v2alpha1/expansion_generated.go",
+<<<<<<< HEAD
+=======
+        "k8s.io/client-go/listers/batch/v2alpha1/job.go",
+>>>>>>> Update godep license and bazel
     ],
     tags = ["automanaged"],
     deps = [
@@ -14024,7 +14455,10 @@ go_library(
         "//vendor:k8s.io/client-go/pkg/api",
         "//vendor:k8s.io/client-go/pkg/api/v1",
         "//vendor:k8s.io/client-go/pkg/apis/batch",
+<<<<<<< HEAD
         "//vendor:k8s.io/client-go/pkg/apis/batch/v1",
+=======
+>>>>>>> Update godep license and bazel
     ],
 )
 
