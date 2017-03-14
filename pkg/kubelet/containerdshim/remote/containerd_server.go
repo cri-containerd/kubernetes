@@ -37,26 +37,26 @@ const (
 	unixProtocol = "unix"
 )
 
-// DockerServer is the grpc server of containerdshim.
-type DockerServer struct {
+// ContainerdServer is the grpc server of containerdshim.
+type ContainerdServer struct {
 	// addr is the address to serve on.
 	addr string
-	// service is the docker service which implements runtime and image services.
-	service DockerService
+	// service is the containerd service which implements runtime and image services.
+	service ContainerdService
 	// server is the grpc server.
 	server *grpc.Server
 }
 
-// NewDockerServer creates the containerdshim grpc server.
-func NewDockerServer(addr string, s containerdshim.DockerService) *DockerServer {
-	return &DockerServer{
+// NewContainerdServer creates the containerdshim grpc server.
+func NewContainerdServer(addr string, s containerdshim.ContainerdService) *ContainerdServer {
+	return &ContainerdServer{
 		addr:    addr,
-		service: NewDockerService(s),
+		service: NewContainerdService(s),
 	}
 }
 
 // Start starts the containerdshim grpc server.
-func (s *DockerServer) Start() error {
+func (s *ContainerdServer) Start() error {
 	glog.V(2).Infof("Start containerdshim grpc server")
 	// Unlink to cleanup the previous socket file.
 	err := syscall.Unlink(s.addr)
@@ -83,7 +83,7 @@ func (s *DockerServer) Start() error {
 }
 
 // Stop stops the containerdshim grpc server.
-func (s *DockerServer) Stop() {
-	glog.V(2).Infof("Stop docker server")
+func (s *ContainerdServer) Stop() {
+	glog.V(2).Infof("Stop containerd server")
 	s.server.Stop()
 }
