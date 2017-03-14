@@ -1,0 +1,53 @@
+/*
+Copyright 2016 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package containerdshim
+
+import (
+	"fmt"
+
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+)
+
+// P0
+func (cs *containerdService) ListContainers(filter *runtimeapi.ContainerFilter) ([]*runtimeapi.Container, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// P0
+func (cs *containerdService) CreateContainer(podSandboxID string, config *runtimeapi.ContainerConfig, sandboxConfig *runtimeapi.PodSandboxConfig) (string, error) {
+	return "", fmt.Errorf("not implemented")
+}
+
+// P0
+func (cs *containerdService) StartContainer(containerID string) error {
+	return fmt.Errorf("not implemented")
+}
+
+// P0
+func (cs *containerdService) StopContainer(containerID string, timeout int64) error {
+	return fmt.Errorf("not implemented")
+}
+
+// P1
+func (cs *containerdService) RemoveContainer(containerID string) error {
+	return fmt.Errorf("not implemented")
+}
+
+// P0
+func (cs *containerdService) ContainerStatus(containerID string) (*runtimeapi.ContainerStatus, error) {
+	return nil, fmt.Errorf("not implemented")
+}
