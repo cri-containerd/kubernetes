@@ -29,6 +29,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"google.golang.org/grpc"
+
+	execution "github.com/docker/containerd/api/services/execution"
 	"github.com/golang/glog"
 
 	clientgoclientset "k8s.io/client-go/kubernetes"
@@ -552,7 +555,29 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 
 		switch kubeCfg.ContainerRuntime {
 		case "containerd":
-			cs := containerdshim.NewContainerdService()
+			const (
+				// The unix socket for kubelet <-> containerdshim communication.
+				ep = "/var/run/containerdshim.sock"
+				// The unix socket for containerdshhim <-> containerd communication.
+				bindSocket = "/run/containerd/containerd.sock" // mikebrow get these from a config
+			)
+			kubeCfg.RemoteRuntimeEndpoint, kubeCfg.RemoteImageEndpoint = ep, ep
+
+			glog.V(2).Infof("Starting the GRPC client for containerd communication.")
+			// get the containerd client
+			dialOpts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithTimeout(100 * time.Second)}
+			dialOpts = append(dialOpts,
+				grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
+					return net.DialTimeout("unix", bindSocket, timeout)
+				},
+				))
+			conn, err := grpc.Dial(fmt.Sprintf("unix://%s", bindSocket), dialOpts...)
+			if err != nil {
+				return nil, err
+			}
+			cdClient := execution.NewContainerServiceClient(conn)
+
+			cs := containerdshim.NewContainerdService(cdClient)
 			if err := cs.Start(); err != nil {
 				return nil, err
 			}
@@ -560,17 +585,12 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 			// kubelet, which handles the requests using ContainerdService..
 			klet.criHandler = cs
 
-			const (
-				// The unix socket for kubelet <-> containerdshim communication.
-				ep = "/var/run/containerdshim.sock"
-			)
-			kubeCfg.RemoteRuntimeEndpoint, kubeCfg.RemoteImageEndpoint = ep, ep
-
 			glog.V(2).Infof("Starting the GRPC server for the containerd CRI shim.")
 			server := containerdremote.NewContainerdServer(ep, cs)
 			if err := server.Start(); err != nil {
 				return nil, err
 			}
+
 		case "docker":
 			// Create and start the CRI shim running as a grpc server.
 			streamingConfig := getStreamingConfig(kubeCfg, kubeDeps)
