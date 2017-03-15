@@ -25,7 +25,7 @@ import (
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 
 	_ "github.com/docker/containerd/api/services/content"
-	_ "github.com/docker/containerd/api/services/execution"
+	execution "github.com/docker/containerd/api/services/execution"
 	_ "github.com/docker/containerd/api/services/shim"
 	_ "github.com/docker/containerd/api/types/container"
 	_ "github.com/docker/containerd/api/types/mount"
@@ -39,10 +39,13 @@ type ContainerdService interface {
 	http.Handler
 }
 
-type containerdService struct{}
+type containerdService struct {
+	// containerd client
+	cdClient execution.ContainerServiceClient
+}
 
-func NewContainerdService() ContainerdService {
-	return &containerdService{}
+func NewContainerdService(cdClient execution.ContainerServiceClient) ContainerdService {
+	return &containerdService{cdClient: cdClient}
 }
 
 // P4
