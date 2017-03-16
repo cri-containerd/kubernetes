@@ -29,8 +29,8 @@ import (
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
-// NOTE: To run the test, please make sure `dist` is in $PATH.
-func TestXxx(t *testing.T) {
+// NOTE: To run the test, please make sure `dist` and `jq` is in $PATH.
+func TestImageOperations(t *testing.T) {
 	const (
 		storePath = ".content"
 		image     = "docker.io/library/redis"
@@ -66,7 +66,7 @@ func TestXxx(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotZero(t, layerNum)
 
-	t.Logf("Should has the same digest and pull no new layer if we pull the same image")
+	t.Logf("Should have the same digest and pull no new layer if we pull the same image")
 	newDigest, err := cs.PullImage(&runtimeapi.ImageSpec{Image: image}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, digest, newDigest)
@@ -86,5 +86,38 @@ func TestXxx(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, img)
 
+	os.RemoveAll(storePath)
+}
+
+// The test must be run as root, because apply layer needs the permission
+// to change diretory owner.
+func TestCreateRootfs(t *testing.T) {
+	const (
+		storePath = ".content"
+		image     = "docker.io/library/redis"
+		rootfs    = "rootfs"
+	)
+	// Make sure there is no exsiting image.
+	if _, err := os.Stat(storePath); err == nil {
+		os.RemoveAll(storePath)
+	}
+	cs := NewContainerdService(nil)
+
+	t.Logf("Should be able to pull image")
+	_, err := cs.PullImage(&runtimeapi.ImageSpec{Image: image}, nil)
+	assert.NoError(t, err)
+	t.Logf("Should be able to create rootfs from the image")
+	repo, tag := repoAndTag(image)
+	assert.NoError(t, createRootfs(repo, tag, rootfs))
+	t.Logf("The rootfs should be created")
+	_, err = os.Stat(rootfs)
+	assert.NoError(t, err)
+	output, err := exec.Command("sh", "-c", fmt.Sprintf("ls %s rootfs | wc -l", rootfs)).Output()
+	assert.NoError(t, err)
+	dirsNum, err := strconv.Atoi(strings.TrimSpace(string(output)))
+	assert.NoError(t, err)
+	assert.NotZero(t, dirsNum)
+
+	os.RemoveAll(rootfs)
 	os.RemoveAll(storePath)
 }
