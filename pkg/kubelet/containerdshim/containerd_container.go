@@ -143,6 +143,9 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 // P0
 func (cs *containerdService) StartContainer(containerID string) error {
 	glog.V(2).Infof("StartContainer called with %s", containerID)
+	if containerID == "" {
+		return fmt.Errorf("containerID should not be empty")
+	}
 	if _, err := cs.cdClient.Start(gocontext.Background(), &execution.StartRequest{
 		ID: containerID,
 	}); err != nil {
