@@ -22,26 +22,33 @@ import (
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
+// RunPodSandbox creates and runs a pod-level sandbox.
 // P0
 func (cs *containerdService) RunPodSandbox(config *runtimeapi.PodSandboxConfig) (string, error) {
 	return "", fmt.Errorf("not implemented")
 }
 
+// StopPodSandbox stops the sandbox. If there are any running containers in the
+// sandbox, they should be force terminated.
 // P0
 func (cs *containerdService) StopPodSandbox(podSandboxID string) error {
 	return fmt.Errorf("not implemented")
 }
 
+// RemovePodSandbox deletes the sandbox. If there are any running containers in the
+// sandbox, they should be force deleted.
 // P1
 func (cs *containerdService) RemovePodSandbox(podSandboxID string) error {
 	return fmt.Errorf("not implemented")
 }
 
+// PodSandboxStatus returns the Status of the PodSandbox.
 // P0
 func (cs *containerdService) PodSandboxStatus(podSandboxID string) (*runtimeapi.PodSandboxStatus, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
+// ListPodSandbox returns a list of SandBoxes.
 // P0
 func (cs *containerdService) ListPodSandbox(filter *runtimeapi.PodSandboxFilter) ([]*runtimeapi.PodSandbox, error) {
 	return nil, fmt.Errorf("not implemented")
