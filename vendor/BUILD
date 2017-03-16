@@ -5883,6 +5883,15 @@ go_library(
 )
 
 go_library(
+    name = "github.com/opencontainers/image-spec/specs-go",
+    srcs = [
+        "github.com/opencontainers/image-spec/specs-go/version.go",
+        "github.com/opencontainers/image-spec/specs-go/versioned.go",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
     name = "github.com/opencontainers/runc/libcontainer",
     srcs = [
         "github.com/opencontainers/runc/libcontainer/capabilities_linux.go",
@@ -6115,6 +6124,16 @@ go_library(
     srcs = [
         "github.com/opencontainers/runc/libcontainer/utils/utils.go",
         "github.com/opencontainers/runc/libcontainer/utils/utils_unix.go",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
+    name = "github.com/opencontainers/runtime-spec/specs-go",
+    srcs = [
+        "github.com/opencontainers/runtime-spec/specs-go/config.go",
+        "github.com/opencontainers/runtime-spec/specs-go/state.go",
+        "github.com/opencontainers/runtime-spec/specs-go/version.go",
     ],
     tags = ["automanaged"],
 )

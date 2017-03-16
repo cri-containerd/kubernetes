@@ -1,7 +1,7 @@
 {
 	"ImportPath": "k8s.io/kubernetes",
 	"GoVersion": "go1.7",
-	"GodepVersion": "v79",
+	"GodepVersion": "v74",
 	"Packages": [
 		"github.com/ugorji/go/codec/codecgen",
 		"github.com/onsi/ginkgo/ginkgo",
@@ -2032,6 +2032,11 @@
 			"Rev": "21dfd564fd89c944783d00d069f33e3e7123c448"
 		},
 		{
+			"ImportPath": "github.com/opencontainers/image-spec/specs-go",
+			"Comment": "v1.0.0-rc4-51-ga431dbc",
+			"Rev": "a431dbcf6a74fca2e0e040b819a836dbe3fb23ca"
+		},
+		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
 			"Comment": "v1.0.0-rc2-14-g45c30e7",
 			"Rev": "45c30e75abfd52107b53048004a83165403ad0d1"
@@ -2110,6 +2115,11 @@
 			"ImportPath": "github.com/opencontainers/runc/libcontainer/utils",
 			"Comment": "v1.0.0-rc2-14-g45c30e7",
 			"Rev": "45c30e75abfd52107b53048004a83165403ad0d1"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/runtime-spec/specs-go",
+			"Comment": "v1.0.0-rc3",
+			"Rev": "794ca7ac88234607f9d2c76da8a6e9bbbade8cb9"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",
