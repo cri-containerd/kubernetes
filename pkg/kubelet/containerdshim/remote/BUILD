@@ -10,8 +10,8 @@ load(
 go_library(
     name = "go_default_library",
     srcs = [
-        "docker_server.go",
-        "docker_service.go",
+        "containerd_server.go",
+        "containerd_service.go",
     ],
     tags = ["automanaged"],
     deps = [
