@@ -18,6 +18,7 @@ package containerdshim
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -116,9 +117,21 @@ func imageDigest(repo, tag string) (string, error) {
 }
 
 func pullImage(repo, tag string) error {
-	output, err := exec.Command("sh", "-c", fmt.Sprintf("dist fetch %s %s %s | jq -r '.layers[] | \"dist fetch %s \"+.digest + \"| dist ingest --expected-digest \"+.digest+\" --expected-size \"+(.size | tostring) +\" %s@\"+.digest' | xargs -I{} -P10 -n1 sh -c \"{}\"", repo, tag, mediaType, repo, repo)).Output()
+	output, err := exec.Command("sh", "-c", fmt.Sprintf("dist fetch %s %s %s | jq -r '.layers[] | \"dist fetch %s \"+.digest + \"| dist ingest --expected-digest \"+.digest+\" --expected-size \"+(.size | tostring) +\" %s@\"+.digest' | xargs -I{} -P10 -n1 sh -c \"{}\"", repo, tag, mediaType, repo, repo)).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to pull image %s:%s, output: %s, err: %v", repo, tag, output, err)
+	}
+	return nil
+}
+
+func createRootfs(repo, tag, path string) error {
+	if err := os.MkdirAll(path, 0777); err != nil {
+		return fmt.Errorf("failed to create rootfs directory %s:%s: %v", repo, tag, err)
+	}
+	output, err := exec.Command("sh", "-c", fmt.Sprintf("dist fetch %s %s %s | jq -r '.layers[] | \"dist apply %s < $(dist path -q \"+.digest+\")\"' | xargs -I{} -n1 sh -c \"{}\"",
+		repo, tag, mediaType, path)).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to create rootfs for %s:%s, output: %s, err: %v", repo, tag, output, err)
 	}
 	return nil
 }
