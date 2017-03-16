@@ -32,6 +32,7 @@ import (
 )
 
 // NOTE: To run the test, please make sure `containerd` is running and 'dist' is in $PATH.
+// And you should run the test as root.
 func TestContainer(t *testing.T) {
 	const (
 		storePath = ".content"
