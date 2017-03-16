@@ -1108,7 +1108,6 @@ go_library(
 )
 
 go_library(
-<<<<<<< HEAD
     name = "github.com/codedellemc/goscaleio",
     srcs = [
         "github.com/codedellemc/goscaleio/api.go",
@@ -1138,8 +1137,6 @@ go_library(
 )
 
 go_library(
-=======
->>>>>>> Update godep license and bazel
     name = "github.com/codegangsta/negroni",
     srcs = [
         "github.com/codegangsta/negroni/doc.go",
@@ -1214,10 +1211,7 @@ go_library(
         "//vendor:github.com/coreos/pkg/capnslog",
         "//vendor:golang.org/x/crypto/bcrypt",
         "//vendor:golang.org/x/net/context",
-<<<<<<< HEAD
-=======
         "//vendor:google.golang.org/grpc/metadata",
->>>>>>> Update godep license and bazel
     ],
 )
 
@@ -6045,7 +6039,19 @@ go_library(
 )
 
 go_library(
+<<<<<<< HEAD
 >>>>>>> Update godep license and bazel
+=======
+    name = "github.com/opencontainers/image-spec/specs-go",
+    srcs = [
+        "github.com/opencontainers/image-spec/specs-go/version.go",
+        "github.com/opencontainers/image-spec/specs-go/versioned.go",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
+>>>>>>> Add image-spec and runtime-spec in godep
     name = "github.com/opencontainers/runc/libcontainer",
     srcs = [
         "github.com/opencontainers/runc/libcontainer/capabilities_linux.go",
@@ -6278,6 +6284,16 @@ go_library(
     srcs = [
         "github.com/opencontainers/runc/libcontainer/utils/utils.go",
         "github.com/opencontainers/runc/libcontainer/utils/utils_unix.go",
+    ],
+    tags = ["automanaged"],
+)
+
+go_library(
+    name = "github.com/opencontainers/runtime-spec/specs-go",
+    srcs = [
+        "github.com/opencontainers/runtime-spec/specs-go/config.go",
+        "github.com/opencontainers/runtime-spec/specs-go/state.go",
+        "github.com/opencontainers/runtime-spec/specs-go/version.go",
     ],
     tags = ["automanaged"],
 )

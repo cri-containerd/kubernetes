@@ -29,6 +29,8 @@ import (
 	_ "github.com/docker/containerd/api/services/shim"
 	_ "github.com/docker/containerd/api/types/container"
 	_ "github.com/docker/containerd/api/types/mount"
+	_ "github.com/opencontainers/image-spec/specs-go"
+	_ "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type ContainerdService interface {
