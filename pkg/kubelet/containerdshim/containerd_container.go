@@ -20,20 +20,55 @@ import (
 	gocontext "context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/docker/containerd/api/services/execution"
+	"github.com/docker/containerd/api/services/shim"
 	"github.com/docker/containerd/api/types/mount"
 	protobuf "github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim"
+)
+
+const (
+	containerdCRIRoot = "/tmp/containerd-cri"
+	shimbindSocket    = "shim.sock"
 )
 
 // P0
 func (cs *containerdService) ListContainers(filter *runtimeapi.ContainerFilter) ([]*runtimeapi.Container, error) {
-	return nil, fmt.Errorf("not implemented")
+	resp, err := cs.cdClient.List(gocontext.Background(), &execution.ListRequest{})
+	if err != nil {
+		return nil, err
+	}
+	var criContainers []*runtimeapi.Container
+	for _, c := range resp.Containers {
+		criC, err := toCRIContainer(c)
+		if err != nil {
+			glog.Errorf("Failed to parse container %+v: %v", c, err)
+			continue
+		}
+		criContainers = append(criContainers, criC)
+	}
+
+	// Only support state filter now.
+	// TODO Add other filters, especially label filter.
+	if filter != nil {
+		var filtered []*runtimeapi.Container
+		if filter.State != nil {
+			for _, c := range criContainers {
+				if c.State == filter.GetState().State {
+					filtered = append(filtered, c)
+				}
+			}
+		}
+		criContainers = filtered
+	}
+	return criContainers, nil
 }
 
 // CreateContainer creates a new container in the given PodSandbox
@@ -52,6 +87,7 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 
 	// mikebrow todo lookup the pod by id (for poc going without a pod datastructure)
 
+	// TODO(P0): Current CRI integration highly rely on label filter.
 	// mikebrow todo labels and annotations
 	// labels := makeLabels(config.GetLabels(), config.GetAnnotations())
 	// Apply a the container type label.
@@ -65,23 +101,17 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 	if name == "" {
 		return "", fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
 	}
-	attempt := containerConfig.GetMetadata().Attempt
-	var containerName string
-	if name == "infra" {
-		containerName = fmt.Sprintf("%s-%s", podSandboxID, name)
-	} else {
-		containerName = fmt.Sprintf("%s-%s-%v", podSandboxID, name, attempt)
-	}
-	containerID := podSandboxID // mikebrow TODO containerID must be unique crio guys are using stringid.GenerateNonCryptoID() then insuring uniqueness with storage
+	// mikebrow TODO containerID must be unique crio guys are using stringid.GenerateNonCryptoID() then insuring uniqueness with storage
+	containerID := dockershim.MakeContainerName(sandboxConfig, containerConfig)
 
-	tmpDir, err := getTempDir(containerName)
+	containerDir, err := ensureContainerDir(containerID)
 	if err != nil {
 		return "", err
 	}
 
-	rootfsPath := "/tmp/rootfs" // mikebrow TODO must be passed in
-	abs, err := filepath.Abs(rootfsPath)
-	if err != nil {
+	// Create container rootfs
+	rootfsPath := filepath.Join(containerDir, "rootfs")
+	if err := createRootfs(containerConfig.GetImage().GetImage(), rootfsPath); err != nil {
 		return "", err
 	}
 
@@ -89,7 +119,7 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 	rootfs := []*mount.Mount{
 		{
 			Type:   "bind",
-			Source: abs,
+			Source: rootfsPath,
 			Options: []string{
 				"rw",
 				"rbind",
@@ -97,20 +127,16 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 		},
 	}
 
-	processArgs := []string{}
-	commands := containerConfig.Command
-	args := containerConfig.Args
-	if commands == nil && args == nil {
-		processArgs = nil
+	var processArgs []string
+	if containerConfig.Command != nil {
+		processArgs = append(processArgs, containerConfig.Command...)
 	}
-	if commands != nil {
-		processArgs = append(processArgs, commands...)
-	}
-	if args != nil {
-		processArgs = append(processArgs, args...)
+	if containerConfig.Args != nil {
+		processArgs = append(processArgs, containerConfig.Args...)
 	}
 
-	s := spec(containerID, processArgs, containerConfig.Tty)
+	// TODO: Set other configs, such as envs, working directory etc.
+	s := defaultOCISpec(containerID, processArgs, rootfsPath, containerConfig.Tty)
 
 	data, err := json.Marshal(s)
 	if err != nil {
@@ -125,9 +151,9 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 		Rootfs:   rootfs,
 		Runtime:  "linux",
 		Terminal: containerConfig.Tty,
-		Stdin:    filepath.Join(tmpDir, "stdin"), // mikebrow TODO needed for console
-		Stdout:   filepath.Join(tmpDir, "stdout"),
-		Stderr:   filepath.Join(tmpDir, "stderr"),
+		Stdin:    filepath.Join(containerDir, "stdin"), // mikebrow TODO needed for console
+		Stdout:   filepath.Join(containerDir, "stdout"),
+		Stderr:   filepath.Join(containerDir, "stderr"),
 	}
 	_, err = prepareStdio(create.Stdin, create.Stdout, create.Stderr, create.Terminal)
 	if err != nil {
@@ -135,7 +161,7 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 	}
 
 	// mikebrow TODO proper console handling
-	glog.V(2).Infof("CreateContainer for container %s tmpDir %s", containerName, tmpDir)
+	glog.V(2).Infof("CreateContainer for container %s container directory %s", containerID, containerDir)
 	response, err := cs.cdClient.Create(gocontext.Background(), create)
 	if err != nil {
 		return "", err
@@ -151,30 +177,52 @@ func (cs *containerdService) StartContainer(containerID string) error {
 	if containerID == "" {
 		return fmt.Errorf("containerID should not be empty")
 	}
-	if _, err := cs.cdClient.Start(gocontext.Background(), &execution.StartRequest{
-		ID: containerID,
-	}); err != nil {
-		glog.V(2).Infof("StartContainer for %s failed with %v", containerID, err)
-		return err
-	}
-	return nil
+	_, err := cs.cdClient.Start(gocontext.Background(), &execution.StartRequest{ID: containerID})
+	return err
 }
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 // P0
 func (cs *containerdService) StopContainer(containerID string, timeout int64) error {
-	return fmt.Errorf("not implemented")
+	glog.V(2).Infof("StopContainer called with %s", containerID)
+	// TODO Support grace period.
+	if containerID == "" {
+		return fmt.Errorf("containerID should not be empty")
+	}
+	c, err := getShimClient(containerID)
+	if err != nil {
+		return fmt.Errorf("failed to get shim for container %q: %v", containerID, err)
+	}
+	_, err = c.Exit(gocontext.Background(), &shim.ExitRequest{})
+	return err
 }
 
 // RemoveContainer removes the container. If the container is running, the container
 // should be force removed.
 // P1
 func (cs *containerdService) RemoveContainer(containerID string) error {
-	return fmt.Errorf("not implemented")
+	glog.V(2).Infof("RemoveContainer called with %s", containerID)
+	if containerID == "" {
+		return fmt.Errorf("containerID should not be empty")
+	}
+	_, err := cs.cdClient.Delete(gocontext.Background(), &execution.DeleteRequest{ID: containerID})
+	if err != nil {
+		return err
+	}
+	// TODO Support log, keep log and remove container
+	return os.RemoveAll(getContainerDir(containerID))
 }
 
 // ContainerStatus returns status of the container.
 // P0
 func (cs *containerdService) ContainerStatus(containerID string) (*runtimeapi.ContainerStatus, error) {
-	return nil, fmt.Errorf("not implemented")
+	glog.V(4).Infof("ContainerStatus called with %s", containerID)
+	if containerID == "" {
+		return nil, fmt.Errorf("containerID should not be empty")
+	}
+	c, err := cs.cdClient.Info(gocontext.Background(), &execution.InfoRequest{ID: containerID})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get container info %q: %v", containerID, err)
+	}
+	return toCRIContainerStatus(c)
 }

@@ -39,6 +39,7 @@ func TestImageOperations(t *testing.T) {
 	if _, err := os.Stat(storePath); err == nil {
 		os.RemoveAll(storePath)
 	}
+	defer os.RemoveAll(storePath)
 	cs := NewContainerdService(nil)
 
 	t.Logf("Should be able to pull image")
@@ -85,8 +86,6 @@ func TestImageOperations(t *testing.T) {
 	img, err = cs.ImageStatus(&runtimeapi.ImageSpec{Image: image})
 	assert.NoError(t, err)
 	assert.Nil(t, img)
-
-	os.RemoveAll(storePath)
 }
 
 // The test must be run as root, because apply layer needs the permission
@@ -101,14 +100,16 @@ func TestCreateRootfs(t *testing.T) {
 	if _, err := os.Stat(storePath); err == nil {
 		os.RemoveAll(storePath)
 	}
+	defer os.RemoveAll(rootfs)
+	defer os.RemoveAll(storePath)
+
 	cs := NewContainerdService(nil)
 
 	t.Logf("Should be able to pull image")
 	_, err := cs.PullImage(&runtimeapi.ImageSpec{Image: image}, nil)
 	assert.NoError(t, err)
 	t.Logf("Should be able to create rootfs from the image")
-	repo, tag := repoAndTag(image)
-	assert.NoError(t, createRootfs(repo, tag, rootfs))
+	assert.NoError(t, createRootfs(image, rootfs))
 	t.Logf("The rootfs should be created")
 	_, err = os.Stat(rootfs)
 	assert.NoError(t, err)
@@ -117,7 +118,4 @@ func TestCreateRootfs(t *testing.T) {
 	dirsNum, err := strconv.Atoi(strings.TrimSpace(string(output)))
 	assert.NoError(t, err)
 	assert.NotZero(t, dirsNum)
-
-	os.RemoveAll(rootfs)
-	os.RemoveAll(storePath)
 }

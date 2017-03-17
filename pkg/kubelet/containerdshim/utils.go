@@ -3,17 +3,24 @@ package containerdshim
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
 	"syscall"
+	"time"
 
 	gocontext "context"
 
+	"github.com/docker/containerd/api/services/shim"
+	"github.com/docker/containerd/api/types/container"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/tonistiigi/fifo"
+	"google.golang.org/grpc"
+
+	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/dockershim"
 	"k8s.io/kubernetes/pkg/kubelet/leaky"
 )
 
@@ -29,9 +36,7 @@ const (
 
 var rwm = "rwm"
 
-const rootfsPath = "rootfs"
-
-func spec(id string, args []string, tty bool) *specs.Spec {
+func defaultOCISpec(id string, args []string, rootfs string, tty bool) *specs.Spec {
 	return &specs.Spec{
 		Version: specs.Version,
 		Platform: specs.Platform{
@@ -39,7 +44,7 @@ func spec(id string, args []string, tty bool) *specs.Spec {
 			Arch: runtime.GOARCH,
 		},
 		Root: specs.Root{
-			Path:     rootfsPath,
+			Path:     rootfs,
 			Readonly: true,
 		},
 		Process: specs.Process{
@@ -143,16 +148,16 @@ func spec(id string, args []string, tty bool) *specs.Spec {
 	}
 }
 
-func getTempDir(id string) (string, error) {
-	err := os.MkdirAll(filepath.Join(os.TempDir(), "ctr"), 0700)
-	if err != nil {
+func ensureContainerDir(id string) (string, error) {
+	dir := getContainerDir(id)
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return "", err
 	}
-	tmpDir, err := ioutil.TempDir(filepath.Join(os.TempDir(), "ctr"), fmt.Sprintf("%s-", id))
-	if err != nil {
-		return "", err
-	}
-	return tmpDir, nil
+	return dir, nil
+}
+
+func getContainerDir(id string) string {
+	return filepath.Join(containerdCRIRoot, id)
 }
 
 func prepareStdio(stdin, stdout, stderr string, console bool) (*sync.WaitGroup, error) {
@@ -208,4 +213,77 @@ func prepareStdio(stdin, stdout, stderr string, console bool) (*sync.WaitGroup, 
 	}
 
 	return &wg, nil
+}
+
+func getShimClient(id string) (shim.ShimClient, error) {
+	containerDir := getContainerDir(id)
+	bindSocket := filepath.Join(containerDir, shimbindSocket)
+	dialOpts := []grpc.DialOption{
+		grpc.WithInsecure(),
+		grpc.WithTimeout(100 * time.Second),
+		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
+			return net.DialTimeout("unix", bindSocket, timeout)
+		}),
+	}
+	conn, err := grpc.Dial(fmt.Sprintf("unix://%s", bindSocket), dialOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return shim.NewShimClient(conn), nil
+}
+
+func toCRIContainer(c *container.Container) (*runtimeapi.Container, error) {
+	metadata, err := dockershim.ParseContainerName(c.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse container id %s: %v", c.ID, err)
+	}
+	return &runtimeapi.Container{
+		Id:       c.ID,
+		Metadata: metadata,
+		State:    toCRIContainerState(c.Status),
+		// TODO: Add image information.
+		// TODO: Provide correct creation time.
+		CreatedAt: time.Now().Unix(),
+		// TODO: Add label and annotation.
+		// TODO: Add image in either local cache or wait for metadata store.
+	}, nil
+}
+
+func toCRIContainerState(status container.Status) runtimeapi.ContainerState {
+	switch status {
+	case container.Status_CREATED:
+		return runtimeapi.ContainerState_CONTAINER_CREATED
+	case container.Status_RUNNING:
+		return runtimeapi.ContainerState_CONTAINER_RUNNING
+	case container.Status_STOPPED:
+		return runtimeapi.ContainerState_CONTAINER_EXITED
+	default:
+		return runtimeapi.ContainerState_CONTAINER_UNKNOWN
+	}
+}
+
+func toCRIContainerStatus(c *container.Container) (*runtimeapi.ContainerStatus, error) {
+	metadata, err := dockershim.ParseContainerName(c.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse container id %s: %v", c.ID, err)
+	}
+	status := &runtimeapi.ContainerStatus{
+		Id:       c.ID,
+		Metadata: metadata,
+		State:    toCRIContainerState(c.Status),
+		// TODO: Provide correct timestamp.
+		CreatedAt: time.Now().Unix(),
+		// TODO: Add image information.
+		// TODO: Add exit code.
+		// TODO: Add reason and message.
+		// TODO: Add Labels and annotations.
+		// TODO: Add mounts (we may need the spec)
+	}
+	if status.State == runtimeapi.ContainerState_CONTAINER_RUNNING {
+		status.StartedAt = time.Now().Unix()
+	}
+	if status.State == runtimeapi.ContainerState_CONTAINER_EXITED {
+		status.FinishedAt = time.Now().Unix()
+	}
+	return status, nil
 }

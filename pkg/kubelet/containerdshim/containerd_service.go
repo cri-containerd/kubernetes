@@ -17,9 +17,13 @@ limitations under the License.
 package containerdshim
 
 import (
+	"fmt"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/golang/glog"
+	"google.golang.org/grpc"
 
 	internalapi "k8s.io/kubernetes/pkg/kubelet/api"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
@@ -47,6 +51,26 @@ type containerdService struct {
 
 func NewContainerdService(cdClient execution.ContainerServiceClient) ContainerdService {
 	return &containerdService{cdClient: cdClient}
+}
+
+// The unix socket for containerdshhim <-> containerd communication.
+const containerdBindSocket = "/run/containerd/containerd.sock" // mikebrow TODO get these from a config
+
+// GetContainerdClient returns a grpc client for containerd exection service.
+func GetContainerdClient() (execution.ContainerServiceClient, error) {
+	// get the containerd client
+	dialOpts := []grpc.DialOption{
+		grpc.WithInsecure(),
+		grpc.WithTimeout(100 * time.Second),
+		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
+			return net.DialTimeout("unix", containerdBindSocket, timeout)
+		}),
+	}
+	conn, err := grpc.Dial(fmt.Sprintf("unix://%s", containerdBindSocket), dialOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return execution.NewContainerServiceClient(conn), nil
 }
 
 // P4
