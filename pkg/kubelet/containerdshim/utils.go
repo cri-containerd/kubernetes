@@ -2,13 +2,18 @@ package containerdshim
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
+	"syscall"
+
+	gocontext "context"
 
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-
+	"github.com/tonistiigi/fifo"
 	"k8s.io/kubernetes/pkg/kubelet/leaky"
 )
 
@@ -148,4 +153,59 @@ func getTempDir(id string) (string, error) {
 		return "", err
 	}
 	return tmpDir, nil
+}
+
+func prepareStdio(stdin, stdout, stderr string, console bool) (*sync.WaitGroup, error) {
+	var wg sync.WaitGroup
+	ctx := gocontext.Background()
+
+	f, err := fifo.OpenFifo(ctx, stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	if err != nil {
+		return nil, err
+	}
+	defer func(c io.Closer) {
+		if err != nil {
+			c.Close()
+		}
+	}(f)
+	go func(w io.WriteCloser) {
+		io.Copy(w, os.Stdin)
+		w.Close()
+	}(f)
+
+	f, err = fifo.OpenFifo(ctx, stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	if err != nil {
+		return nil, err
+	}
+	defer func(c io.Closer) {
+		if err != nil {
+			c.Close()
+		}
+	}(f)
+	wg.Add(1)
+	go func(r io.ReadCloser) {
+		io.Copy(os.Stdout, r)
+		r.Close()
+		wg.Done()
+	}(f)
+
+	f, err = fifo.OpenFifo(ctx, stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	if err != nil {
+		return nil, err
+	}
+	defer func(c io.Closer) {
+		if err != nil {
+			c.Close()
+		}
+	}(f)
+	if !console {
+		wg.Add(1)
+		go func(r io.ReadCloser) {
+			io.Copy(os.Stderr, r)
+			r.Close()
+			wg.Done()
+		}(f)
+	}
+
+	return &wg, nil
 }

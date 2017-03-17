@@ -35,18 +35,25 @@ import (
 // And you should run the test as root.
 func TestContainer(t *testing.T) {
 	const (
-		storePath = ".content"
-		image     = "docker.io/library/redis"
+		storePath     = ".content"
+		image         = "docker.io/library/redis"
+		rootfs        = "/tmp/rootfs"
+		podSandboxID  = "containerd_container_test_pod"
+		containerName = "containerd_container_test_container"
+		cwd           = "/"
+		tty           = false
+		// The unix socket for containerdshhim <-> containerd communication.
+		bindSocket = "/run/containerd/containerd.sock" // mikebrow TODO get these from a config
 	)
+
+	args := []string{
+		"redis-server", "--bind", "0.0.0.0",
+	}
+
 	// Make sure there is no exsiting image.
 	if _, err := os.Stat(storePath); err == nil {
 		os.RemoveAll(storePath)
 	}
-
-	const (
-		// The unix socket for containerdshhim <-> containerd communication.
-		bindSocket = "/run/containerd/containerd.sock" // mikebrow get these from a config
-	)
 
 	//	cmd := exec.Command("sh", "-c", "containerd")
 	//	cmd.Start()
@@ -70,6 +77,9 @@ func TestContainer(t *testing.T) {
 	t.Logf("Should be able to pull image")
 	_, errb := cs.PullImage(&runtimeapi.ImageSpec{Image: image}, nil)
 	assert.NoError(t, errb)
+	t.Logf("Should be able to create rootfs from the image")
+	repo, tag := repoAndTag(image)
+	assert.NoError(t, createRootfs(repo, tag, rootfs))
 
 	// must fail tests TODO add more
 	t.Logf("Should fail to CreateContainer with empty params")
@@ -100,6 +110,16 @@ func TestContainer(t *testing.T) {
 
 	// must pass tests
 	// mikebrow TODO
+	metadata := &runtimeapi.ContainerMetadata{Name: containerName}
+	containerConfig := &runtimeapi.ContainerConfig{Metadata: metadata, WorkingDir: cwd, Args: args, Tty: tty}
+	sandboxConfig := &runtimeapi.PodSandboxConfig{} // mikebrow TODO log and console stuff
+	t.Logf("Should CreateContainer")
+	id, errc = cs.CreateContainer(podSandboxID, containerConfig, sandboxConfig)
+	assert.NoError(t, errc)
+
+	t.Logf("Should StartContainer")
+	errd = cs.StartContainer(id)
+	assert.NoError(t, errd)
 
 	//	t.Logf("Should be able to kill containerd")
 	//	erri := cmd.Process.Kill()
