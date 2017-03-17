@@ -124,7 +124,24 @@ func pullImage(repo, tag string) error {
 	return nil
 }
 
-func createRootfs(repo, tag, path string) error {
+// image must be image reference.
+func isImagePulled(image string) bool {
+	for _, img := range imageStore {
+		for _, tag := range img.RepoTags {
+			if image == tag {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// image must be reference here.
+func createRootfs(image, path string) error {
+	repo, tag := repoAndTag(image)
+	if !isImagePulled(image) {
+		return fmt.Errorf("image %q is not pulled", image)
+	}
 	if err := os.MkdirAll(path, 0777); err != nil {
 		return fmt.Errorf("failed to create rootfs directory %s:%s: %v", repo, tag, err)
 	}
