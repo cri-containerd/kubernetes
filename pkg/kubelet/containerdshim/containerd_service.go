@@ -24,7 +24,6 @@ import (
 	internalapi "k8s.io/kubernetes/pkg/kubelet/api"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 
-	_ "github.com/docker/containerd/api/services/content"
 	execution "github.com/docker/containerd/api/services/execution"
 	_ "github.com/docker/containerd/api/services/shim"
 	_ "github.com/docker/containerd/api/types/container"
