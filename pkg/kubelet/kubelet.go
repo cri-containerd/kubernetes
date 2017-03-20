@@ -562,11 +562,11 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 
 			glog.V(2).Infof("Starting the GRPC client for containerd communication.")
 			// get the containerd client
-			cdClient, err := containerdshim.GetContainerdClient()
+			conn, err := containerdshim.GetContainerdConnection()
 			if err != nil {
 				return nil, err
 			}
-			cs := containerdshim.NewContainerdService(cdClient)
+			cs := containerdshim.NewContainerdService(conn)
 			if err := cs.Start(); err != nil {
 				return nil, err
 			}

@@ -25,25 +25,36 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 )
 
+func cleanupPaths() {
+	for _, p := range []string{
+		containerdVarLib,
+		containerdVarRun,
+	} {
+		os.RemoveAll(p)
+	}
+}
+
+const redisImage = "docker.io/library/redis:latest"
+
 // NOTE: To run the test, please make sure `dist` and `jq` is in $PATH.
 func TestImageOperations(t *testing.T) {
-	const (
-		storePath = ".content"
-		image     = "docker.io/library/redis"
-	)
-	// Make sure there is no exsiting image.
-	if _, err := os.Stat(storePath); err == nil {
-		os.RemoveAll(storePath)
-	}
-	defer os.RemoveAll(storePath)
-	cs := NewContainerdService(nil)
+	cmd := exec.Command("containerd")
+	assert.NoError(t, cmd.Start())
+
+	defer cleanupPaths()
+	defer cmd.Process.Kill()
+
+	conn, err := GetContainerdConnection()
+	require.NoError(t, err)
+	cs := NewContainerdService(conn)
 
 	t.Logf("Should be able to pull image")
-	digest, err := cs.PullImage(&runtimeapi.ImageSpec{Image: image}, nil)
+	digest, err := cs.PullImage(&runtimeapi.ImageSpec{Image: redisImage}, nil)
 	assert.NoError(t, err)
 	t.Logf("Should be able to list new images")
 	imgs, err := cs.ListImages(nil)
@@ -51,31 +62,18 @@ func TestImageOperations(t *testing.T) {
 	assert.Len(t, imgs, 1)
 	assert.Equal(t, digest, imgs[0].Id)
 	t.Logf("Should be able to get new image status with name")
-	img, err := cs.ImageStatus(&runtimeapi.ImageSpec{Image: image})
+	img, err := cs.ImageStatus(&runtimeapi.ImageSpec{Image: redisImage})
 	assert.NoError(t, err)
 	assert.Equal(t, imgs[0], img)
 	t.Logf("Should be able to get new image status with digest")
 	img, err = cs.ImageStatus(&runtimeapi.ImageSpec{Image: digest})
 	assert.NoError(t, err)
 	assert.Equal(t, imgs[0], img)
-	t.Logf("Should be able to see the image in content store")
-	_, err = os.Stat(storePath)
-	assert.NoError(t, err)
-	output, err := exec.Command("sh", "-c", fmt.Sprintf("ls %s/blobs | wc -l", storePath)).Output()
-	assert.NoError(t, err)
-	layerNum, err := strconv.Atoi(strings.TrimSpace(string(output)))
-	assert.NoError(t, err)
-	assert.NotZero(t, layerNum)
 
 	t.Logf("Should have the same digest and pull no new layer if we pull the same image")
-	newDigest, err := cs.PullImage(&runtimeapi.ImageSpec{Image: image}, nil)
+	newDigest, err := cs.PullImage(&runtimeapi.ImageSpec{Image: redisImage}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, digest, newDigest)
-	output, err = exec.Command("sh", "-c", fmt.Sprintf("ls %s/blobs | wc -l", storePath)).Output()
-	assert.NoError(t, err)
-	newLayerNum, err := strconv.Atoi(strings.TrimSpace(string(output)))
-	assert.NoError(t, err)
-	assert.Equal(t, layerNum, newLayerNum)
 
 	t.Logf("Should be able to remove image")
 	err = cs.RemoveImage(&runtimeapi.ImageSpec{Image: digest})
@@ -83,7 +81,7 @@ func TestImageOperations(t *testing.T) {
 	imgs, err = cs.ListImages(nil)
 	assert.NoError(t, err)
 	assert.Empty(t, imgs)
-	img, err = cs.ImageStatus(&runtimeapi.ImageSpec{Image: image})
+	img, err = cs.ImageStatus(&runtimeapi.ImageSpec{Image: redisImage})
 	assert.NoError(t, err)
 	assert.Nil(t, img)
 }
@@ -91,29 +89,29 @@ func TestImageOperations(t *testing.T) {
 // The test must be run as root, because apply layer needs the permission
 // to change diretory owner.
 func TestCreateRootfs(t *testing.T) {
-	const (
-		storePath = ".content"
-		image     = "docker.io/library/redis"
-		rootfs    = "rootfs"
-	)
-	// Make sure there is no exsiting image.
-	if _, err := os.Stat(storePath); err == nil {
-		os.RemoveAll(storePath)
-	}
-	defer os.RemoveAll(rootfs)
-	defer os.RemoveAll(storePath)
+	const rootfs = "rootfs"
 
-	cs := NewContainerdService(nil)
+	cmd := exec.Command("containerd")
+	assert.NoError(t, cmd.Start())
+
+	defer cleanupPaths()
+	defer cmd.Process.Kill()
+	defer os.RemoveAll(rootfs)
+	defer exec.Command("umount", rootfs).Run()
+
+	conn, err := GetContainerdConnection()
+	require.NoError(t, err)
+	cs := NewContainerdService(conn).(*containerdService)
 
 	t.Logf("Should be able to pull image")
-	_, err := cs.PullImage(&runtimeapi.ImageSpec{Image: image}, nil)
+	_, err = cs.PullImage(&runtimeapi.ImageSpec{Image: redisImage}, nil)
 	assert.NoError(t, err)
 	t.Logf("Should be able to create rootfs from the image")
-	assert.NoError(t, createRootfs(image, rootfs))
+	assert.NoError(t, cs.createRootfs(redisImage, rootfs))
 	t.Logf("The rootfs should be created")
 	_, err = os.Stat(rootfs)
 	assert.NoError(t, err)
-	output, err := exec.Command("sh", "-c", fmt.Sprintf("ls %s rootfs | wc -l", rootfs)).Output()
+	output, err := exec.Command("sh", "-c", fmt.Sprintf("ls %s | wc -l", rootfs)).Output()
 	assert.NoError(t, err)
 	dirsNum, err := strconv.Atoi(strings.TrimSpace(string(output)))
 	assert.NoError(t, err)

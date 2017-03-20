@@ -216,8 +216,7 @@ func prepareStdio(stdin, stdout, stderr string, console bool) (*sync.WaitGroup, 
 }
 
 func getShimClient(id string) (shim.ShimClient, error) {
-	containerDir := getContainerDir(id)
-	bindSocket := filepath.Join(containerDir, shimbindSocket)
+	bindSocket := filepath.Join(containerdVarRun, "linux", id, shimbindSocket)
 	dialOpts := []grpc.DialOption{
 		grpc.WithInsecure(),
 		grpc.WithTimeout(100 * time.Second),
@@ -230,6 +229,19 @@ func getShimClient(id string) (shim.ShimClient, error) {
 		return nil, err
 	}
 	return shim.NewShimClient(conn), nil
+}
+
+func statusToContainer(s *runtimeapi.ContainerStatus) *runtimeapi.Container {
+	return &runtimeapi.Container{
+		Id:          s.Id,
+		Metadata:    s.Metadata,
+		Image:       s.Image,
+		ImageRef:    s.ImageRef,
+		State:       s.State,
+		CreatedAt:   s.CreatedAt,
+		Labels:      s.Labels,
+		Annotations: s.Annotations,
+	}
 }
 
 func toCRIContainer(c *container.Container) (*runtimeapi.Container, error) {
@@ -260,30 +272,4 @@ func toCRIContainerState(status container.Status) runtimeapi.ContainerState {
 	default:
 		return runtimeapi.ContainerState_CONTAINER_UNKNOWN
 	}
-}
-
-func toCRIContainerStatus(c *container.Container) (*runtimeapi.ContainerStatus, error) {
-	metadata, err := dockershim.ParseContainerName(c.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse container id %s: %v", c.ID, err)
-	}
-	status := &runtimeapi.ContainerStatus{
-		Id:       c.ID,
-		Metadata: metadata,
-		State:    toCRIContainerState(c.Status),
-		// TODO: Provide correct timestamp.
-		CreatedAt: time.Now().Unix(),
-		// TODO: Add image information.
-		// TODO: Add exit code.
-		// TODO: Add reason and message.
-		// TODO: Add Labels and annotations.
-		// TODO: Add mounts (we may need the spec)
-	}
-	if status.State == runtimeapi.ContainerState_CONTAINER_RUNNING {
-		status.StartedAt = time.Now().Unix()
-	}
-	if status.State == runtimeapi.ContainerState_CONTAINER_EXITED {
-		status.FinishedAt = time.Now().Unix()
-	}
-	return status, nil
 }
