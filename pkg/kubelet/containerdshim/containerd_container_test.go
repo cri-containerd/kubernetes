@@ -19,6 +19,7 @@ package containerdshim
 import (
 	"math/rand"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -37,11 +38,18 @@ func init() {
 // NOTE: To run the test, please make sure `containerd` is running and 'dist' is in $PATH.
 // And you should run the test as root.
 func TestContainerOperationError(t *testing.T) {
+	cmd := exec.Command("containerd")
+	assert.NoError(t, cmd.Start())
+
+	defer os.RemoveAll(containerdCRIRoot)
+	defer cleanupPaths()
+	defer cmd.Process.Kill()
+
 	// get the containerd client
 	t.Logf("Should be able to connect with containerd")
-	cdClient, err := GetContainerdClient()
+	conn, err := GetContainerdConnection()
 	require.NoError(t, err)
-	cs := NewContainerdService(cdClient)
+	cs := NewContainerdService(conn)
 
 	t.Logf("Should be able to start cs")
 	err = cs.Start()
@@ -71,8 +79,6 @@ func TestContainerOperationError(t *testing.T) {
 
 func TestContainerOperations(t *testing.T) {
 	const (
-		storePath     = ".content"
-		image         = "docker.io/library/redis"
 		podSandboxID  = "fake_pod"
 		podName       = "name"
 		podNamespace  = "namespace"
@@ -88,20 +94,24 @@ func TestContainerOperations(t *testing.T) {
 		args             = []string{"redis-server", "--bind", "0.0.0.0"}
 	)
 
-	defer os.RemoveAll(storePath)
-	// defer os.RemoveAll(containerdCRIRoot)
+	cmd := exec.Command("containerd")
+	assert.NoError(t, cmd.Start())
+
+	defer os.RemoveAll(containerdCRIRoot)
+	defer cleanupPaths()
+	defer cmd.Process.Kill()
 
 	t.Logf("Should be able to connect with containerd")
 	// get the containerd client
-	cdClient, err := GetContainerdClient()
+	conn, err := GetContainerdConnection()
 	require.NoError(t, err)
-	cs := NewContainerdService(cdClient)
+	cs := NewContainerdService(conn)
 
 	t.Logf("Should be able to start cs")
 	require.NoError(t, cs.Start())
 
 	t.Logf("Should be able to pull image")
-	_, err = cs.PullImage(&runtimeapi.ImageSpec{Image: image}, nil)
+	_, err = cs.PullImage(&runtimeapi.ImageSpec{Image: redisImage}, nil)
 	require.NoError(t, err)
 
 	containerConfig := &runtimeapi.ContainerConfig{
@@ -109,7 +119,7 @@ func TestContainerOperations(t *testing.T) {
 			Name:    containerName,
 			Attempt: containerAttempt,
 		},
-		Image: &runtimeapi.ImageSpec{Image: image},
+		Image: &runtimeapi.ImageSpec{Image: redisImage},
 		Args:  args,
 		Tty:   tty,
 	}
