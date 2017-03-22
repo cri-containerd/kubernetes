@@ -79,7 +79,8 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 		return "", err
 	}
 
-	abs, err := filepath.Abs(containerConfig.WorkingDir)
+	rootfsPath := "/tmp/rootfs" // mikebrow TODO must be passed in
+	abs, err := filepath.Abs(rootfsPath)
 	if err != nil {
 		return "", err
 	}
@@ -124,13 +125,17 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 		Rootfs:   rootfs,
 		Runtime:  "linux",
 		Terminal: containerConfig.Tty,
-		Stdin:    filepath.Join(tmpDir, "stdin"),
+		Stdin:    filepath.Join(tmpDir, "stdin"), // mikebrow TODO needed for console
 		Stdout:   filepath.Join(tmpDir, "stdout"),
 		Stderr:   filepath.Join(tmpDir, "stderr"),
 	}
+	_, err = prepareStdio(create.Stdin, create.Stdout, create.Stderr, create.Terminal)
+	if err != nil {
+		return "", err
+	}
 
-	// mikebrow todo proper console handling
-
+	// mikebrow TODO proper console handling
+	glog.V(2).Infof("CreateContainer for container %s tmpDir %s", containerName, tmpDir)
 	response, err := cs.cdClient.Create(gocontext.Background(), create)
 	if err != nil {
 		return "", err
