@@ -157,7 +157,7 @@ func TestNetworkPluginInvocation(t *testing.T) {
 		map[string]string{"label": name},
 		map[string]string{"annotation": ns},
 	)
-	cID := kubecontainer.ContainerID{Type: runtimeName, ID: fmt.Sprintf("/%v", makeSandboxName(c))}
+	cID := kubecontainer.ContainerID{Type: runtimeName, ID: fmt.Sprintf("/%v", MakeSandboxName(c))}
 
 	mockPlugin.EXPECT().Name().Return("mockNetworkPlugin").AnyTimes()
 	setup := mockPlugin.EXPECT().SetUpPod(ns, name, cID)
@@ -195,7 +195,7 @@ func TestHostNetworkPluginInvocation(t *testing.T) {
 			},
 		},
 	}
-	cID := kubecontainer.ContainerID{Type: runtimeName, ID: fmt.Sprintf("/%v", makeSandboxName(c))}
+	cID := kubecontainer.ContainerID{Type: runtimeName, ID: fmt.Sprintf("/%v", MakeSandboxName(c))}
 
 	// No calls to network plugin are expected
 	_, err := ds.RunPodSandbox(c)

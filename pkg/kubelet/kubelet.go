@@ -29,9 +29,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"google.golang.org/grpc"
-
-	execution "github.com/docker/containerd/api/services/execution"
 	"github.com/golang/glog"
 
 	clientgoclientset "k8s.io/client-go/kubernetes"
@@ -560,17 +557,11 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 
 			glog.V(2).Infof("Starting the GRPC client for containerd communication.")
 			// get the containerd client
-			dialOpts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithTimeout(100 * time.Second)}
-			dialOpts = append(dialOpts, grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-				return net.DialTimeout("unix", bindSocket, timeout)
-			}))
-			conn, err := grpc.Dial(fmt.Sprintf("unix://%s", bindSocket), dialOpts...)
+			conn, err := containerdshim.GetContainerdConnection()
 			if err != nil {
 				return nil, err
 			}
-			cdClient := execution.NewContainerServiceClient(conn)
-
-			cs := containerdshim.NewContainerdService(cdClient)
+			cs := containerdshim.NewContainerdService(conn)
 			if err := cs.Start(); err != nil {
 				return nil, err
 			}

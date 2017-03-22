@@ -17,19 +17,27 @@ go_library(
         "containerd_service.go",
         "containerd_streaming.go",
         "doc.go",
+        "utils.go",
     ],
     tags = ["automanaged"],
     deps = [
         "//pkg/kubelet/api:go_default_library",
         "//pkg/kubelet/api/v1alpha1/runtime:go_default_library",
-        "//vendor:github.com/docker/containerd/api/services/content",
+        "//pkg/kubelet/dockershim:go_default_library",
+        "//pkg/kubelet/leaky:go_default_library",
         "//vendor:github.com/docker/containerd/api/services/execution",
+        "//vendor:github.com/docker/containerd/api/services/rootfs",
         "//vendor:github.com/docker/containerd/api/services/shim",
         "//vendor:github.com/docker/containerd/api/types/container",
         "//vendor:github.com/docker/containerd/api/types/mount",
+        "//vendor:github.com/docker/containerd/services/rootfs",
+        "//vendor:github.com/gogo/protobuf/types",
         "//vendor:github.com/golang/glog",
         "//vendor:github.com/opencontainers/image-spec/specs-go",
+        "//vendor:github.com/opencontainers/image-spec/specs-go/v1",
         "//vendor:github.com/opencontainers/runtime-spec/specs-go",
+        "//vendor:github.com/tonistiigi/fifo",
+        "//vendor:google.golang.org/grpc",
     ],
 )
 
@@ -43,7 +51,9 @@ go_test(
     tags = ["automanaged"],
     deps = [
         "//pkg/kubelet/api/v1alpha1/runtime:go_default_library",
+        "//pkg/kubelet/dockershim:go_default_library",
         "//vendor:github.com/stretchr/testify/assert",
+        "//vendor:github.com/stretchr/testify/require",
     ],
 )
 

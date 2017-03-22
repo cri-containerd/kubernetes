@@ -17,20 +17,31 @@ limitations under the License.
 package containerdshim
 
 import (
+	"fmt"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/golang/glog"
+	"google.golang.org/grpc"
 
 	internalapi "k8s.io/kubernetes/pkg/kubelet/api"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 
-	_ "github.com/docker/containerd/api/services/content"
-	execution "github.com/docker/containerd/api/services/execution"
+	"github.com/docker/containerd/api/services/execution"
+	"github.com/docker/containerd/api/services/rootfs"
 	_ "github.com/docker/containerd/api/services/shim"
 	_ "github.com/docker/containerd/api/types/container"
 	_ "github.com/docker/containerd/api/types/mount"
 	_ "github.com/opencontainers/image-spec/specs-go"
 	_ "github.com/opencontainers/runtime-spec/specs-go"
+)
+
+const (
+	containerdVarLib  = "/var/lib/containerd"
+	containerdVarRun  = "/var/run/containerd"
+	containerdCRIRoot = "/tmp/containerd-cri"
+	shimbindSocket    = "shim.sock"
 )
 
 type ContainerdService interface {
@@ -42,12 +53,31 @@ type ContainerdService interface {
 }
 
 type containerdService struct {
-	// containerd client
-	cdClient execution.ContainerServiceClient
+	containerService execution.ContainerServiceClient
+	rootfsService    rootfs.RootFSClient
 }
 
-func NewContainerdService(cdClient execution.ContainerServiceClient) ContainerdService {
-	return &containerdService{cdClient: cdClient}
+func NewContainerdService(conn *grpc.ClientConn) ContainerdService {
+	return &containerdService{
+		containerService: execution.NewContainerServiceClient(conn),
+		rootfsService:    rootfs.NewRootFSClient(conn),
+	}
+}
+
+// The unix socket for containerdshhim <-> containerd communication.
+const containerdBindSocket = "/run/containerd/containerd.sock" // mikebrow TODO get these from a config
+
+// GetContainerdConnection returns a grpc client for containerd exection service.
+func GetContainerdConnection() (*grpc.ClientConn, error) {
+	// get the containerd client
+	dialOpts := []grpc.DialOption{
+		grpc.WithInsecure(),
+		grpc.WithTimeout(100 * time.Second),
+		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
+			return net.DialTimeout("unix", containerdBindSocket, timeout)
+		}),
+	}
+	return grpc.Dial(fmt.Sprintf("unix://%s", containerdBindSocket), dialOpts...)
 }
 
 // P4
