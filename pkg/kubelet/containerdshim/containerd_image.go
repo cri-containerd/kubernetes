@@ -135,6 +135,13 @@ func pullImage(image string) error {
 
 // image must be image reference, returns cached image digest.
 func isImagePulled(image string) string {
+	imageStoreLock.RLock()
+	defer imageStore.RUnLock()
+	// Try digest first
+	if _, ok := imageStore[image]; ok {
+		return image
+	}
+	// Try image reference
 	for digest, img := range imageStore {
 		for _, tag := range img.RepoTags {
 			if image == tag {

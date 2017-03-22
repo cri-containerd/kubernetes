@@ -77,9 +77,8 @@ func TestContainerOperationError(t *testing.T) {
 	assert.Error(t, err, "containerID should not be empty")
 }
 
-func TestContainerOperations(t *testing.T) {
+func TestContainerAndSandboxOperations(t *testing.T) {
 	const (
-		podSandboxID  = "fake_pod"
 		podName       = "name"
 		podNamespace  = "namespace"
 		podUID        = "uid"
@@ -110,6 +109,30 @@ func TestContainerOperations(t *testing.T) {
 	t.Logf("Should be able to start cs")
 	require.NoError(t, cs.Start())
 
+	t.Logf("Should be able to run pod sandbox")
+	sandboxConfig := &runtimeapi.PodSandboxConfig{
+		Metadata: &runtimeapi.PodSandboxMetadata{
+			Name:      podName,
+			Uid:       podUID,
+			Namespace: podNamespace,
+			Attempt:   podAttempt,
+		},
+		Hostname: podName,
+	}
+	sandboxId, err := cs.RunPodSandbox(sandboxConfig)
+	assert.NoError(t, err)
+	t.Logf("Sandbox id should as expected")
+	sandboxMeta, err := dockershim.ParseSandboxName(sandboxId)
+	assert.NoError(t, err)
+	assert.Equal(t, sandboxConfig.Metadata, sandboxMeta)
+	t.Logf("Sandbox directory should be created")
+	sandboxDir := getContainerDir(sandboxId)
+	verifyFileExistence(t, true,
+		sandboxDir,
+		filepath.Join(sandboxDir, "rootfs"),
+	)
+	verifyPodSandboxStatus(t, cs, sandboxId, sandboxMeta, runtimeapi.PodSandboxState_SANDBOX_READY)
+
 	t.Logf("Should be able to pull image")
 	_, err = cs.PullImage(&runtimeapi.ImageSpec{Image: redisImage}, nil)
 	require.NoError(t, err)
@@ -123,16 +146,8 @@ func TestContainerOperations(t *testing.T) {
 		Args:  args,
 		Tty:   tty,
 	}
-	sandboxConfig := &runtimeapi.PodSandboxConfig{
-		Metadata: &runtimeapi.PodSandboxMetadata{
-			Name:      podName,
-			Uid:       podUID,
-			Namespace: podNamespace,
-			Attempt:   podAttempt,
-		},
-	} // mikebrow TODO log and console stuff
 	t.Logf("Should CreateContainer")
-	id, err := cs.CreateContainer(podSandboxID, containerConfig, sandboxConfig)
+	id, err := cs.CreateContainer(sandboxId, containerConfig, sandboxConfig)
 	require.NoError(t, err)
 	t.Logf("Container id should as expected")
 	containerMeta, err := dockershim.ParseContainerName(id)
@@ -144,11 +159,11 @@ func TestContainerOperations(t *testing.T) {
 		containerDir,
 		filepath.Join(containerDir, "rootfs"),
 	)
-	verifyContainerStatus(t, cs, id, containerMeta, runtimeapi.ContainerState_CONTAINER_CREATED)
+	verifyContainerStatus(t, cs, id, sandboxId, containerMeta, runtimeapi.ContainerState_CONTAINER_CREATED)
 
 	t.Logf("Should StartContainer")
 	require.NoError(t, cs.StartContainer(id))
-	verifyContainerStatus(t, cs, id, containerMeta, runtimeapi.ContainerState_CONTAINER_RUNNING)
+	verifyContainerStatus(t, cs, id, sandboxId, containerMeta, runtimeapi.ContainerState_CONTAINER_RUNNING)
 	verifyFileExistence(t, true,
 		filepath.Join(containerDir, "stdin"),
 		filepath.Join(containerDir, "stdout"),
@@ -157,12 +172,21 @@ func TestContainerOperations(t *testing.T) {
 
 	t.Logf("Should StopContainer")
 	require.NoError(t, cs.StopContainer(id, 0))
-	verifyContainerStatus(t, cs, id, containerMeta, runtimeapi.ContainerState_CONTAINER_EXITED)
+	verifyContainerStatus(t, cs, id, sandboxId, containerMeta, runtimeapi.ContainerState_CONTAINER_EXITED)
+
+	t.Logf("Should StopPodSandbox")
+	require.NoError(t, cs.StopPodSandbox(sandboxId))
+	verifyPodSandboxStatus(t, cs, sandboxId, sandboxMeta, runtimeapi.PodSandboxState_SANDBOX_NOTREADY)
 
 	t.Logf("Should RemoveContainer")
 	require.NoError(t, cs.RemoveContainer(id))
 	verifyNoContainerStatus(t, cs, id)
 	verifyFileExistence(t, false, filepath.Join(containerDir))
+
+	t.Logf("Should RemovePodSandbox")
+	require.NoError(t, cs.RemovePodSandbox(sandboxId))
+	verifyNoPodSandboxStatus(t, cs, sandboxId)
+	verifyFileExistence(t, false, filepath.Join(sandboxDir))
 }
 
 func verifyFileExistence(t *testing.T, expectExist bool, files ...string) {
@@ -194,7 +218,7 @@ func verifyNoContainerStatus(t *testing.T, cs ContainerdService, id string) {
 	require.Error(t, err)
 }
 
-func verifyContainerStatus(t *testing.T, cs ContainerdService, id string, metadata *runtimeapi.ContainerMetadata, state runtimeapi.ContainerState) {
+func verifyContainerStatus(t *testing.T, cs ContainerdService, id, sandboxId string, metadata *runtimeapi.ContainerMetadata, state runtimeapi.ContainerState) {
 	t.Logf("Container should show up in list containers")
 	cntrs, err := cs.ListContainers(nil)
 	require.NoError(t, err)
@@ -206,11 +230,54 @@ func verifyContainerStatus(t *testing.T, cs ContainerdService, id string, metada
 		}
 	}
 	require.NotNil(t, cntr)
+	assert.Equal(t, sandboxId, cntr.PodSandboxId)
 	assert.Equal(t, state, cntr.State)
 	assert.Equal(t, metadata, cntr.Metadata)
 
 	t.Logf("Container status should be expected")
 	status, err := cs.ContainerStatus(id)
+	require.NoError(t, err)
+	assert.Equal(t, id, status.Id)
+	assert.Equal(t, state, status.State)
+	assert.Equal(t, metadata, status.Metadata)
+}
+
+func verifyNoPodSandboxStatus(t *testing.T, cs ContainerdService, id string) {
+	t.Logf("Sandbox should not show up in list sandboxes")
+	sandboxes, err := cs.ListPodSandbox(nil)
+	require.NoError(t, err)
+	var sandbox *runtimeapi.PodSandbox
+	for _, s := range sandboxes {
+		if s.Id == id {
+			sandbox = s
+			break
+		}
+	}
+	require.Nil(t, sandbox)
+
+	t.Logf("Sandbox status should not show up")
+	_, err = cs.PodSandboxStatus(id)
+	require.Error(t, err)
+}
+
+func verifyPodSandboxStatus(t *testing.T, cs ContainerdService, id string, metadata *runtimeapi.PodSandboxMetadata, state runtimeapi.PodSandboxState) {
+	t.Logf("Sandbox should show up in list sandboxes")
+	sandboxes, err := cs.ListPodSandbox(nil)
+	require.NoError(t, err)
+	var sandbox *runtimeapi.PodSandbox
+	for _, s := range sandboxes {
+		if s.Id == id {
+			sandbox = s
+			break
+		}
+	}
+	require.NotNil(t, sandbox)
+	assert.Equal(t, id, sandbox.Id)
+	assert.Equal(t, state, sandbox.State)
+	assert.Equal(t, metadata, sandbox.Metadata)
+
+	t.Logf("Sandbox status should be expected")
+	status, err := cs.PodSandboxStatus(id)
 	require.NoError(t, err)
 	assert.Equal(t, id, status.Id)
 	assert.Equal(t, state, status.State)

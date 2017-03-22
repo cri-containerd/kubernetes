@@ -148,6 +148,22 @@ func defaultOCISpec(id string, args []string, rootfs string, tty bool) *specs.Sp
 	}
 }
 
+func addOrReplaceNamespace(namespaces []specs.LinuxNamespace, t specs.LinuxNamespaceType, path string) []specs.LinuxNamespace {
+	var namespace *specs.LinuxNamespace
+	for i := range namespaces {
+		if namespaces[i].Type == t {
+			namespace = &namespaces[i]
+			break
+		}
+	}
+	if namespace == nil {
+		namespaces = append(namespaces, specs.LinuxNamespace{Type: t, Path: path})
+	} else {
+		namespace.Path = path
+	}
+	return namespaces
+}
+
 func ensureContainerDir(id string) (string, error) {
 	dir := getContainerDir(id)
 	if err := os.MkdirAll(dir, 0700); err != nil {
@@ -237,6 +253,17 @@ func statusToContainer(s *runtimeapi.ContainerStatus) *runtimeapi.Container {
 		Metadata:    s.Metadata,
 		Image:       s.Image,
 		ImageRef:    s.ImageRef,
+		State:       s.State,
+		CreatedAt:   s.CreatedAt,
+		Labels:      s.Labels,
+		Annotations: s.Annotations,
+	}
+}
+
+func statusToSandbox(s *runtimeapi.PodSandboxStatus) *runtimeapi.PodSandbox {
+	return &runtimeapi.PodSandbox{
+		Id:          s.Id,
+		Metadata:    s.Metadata,
 		State:       s.State,
 		CreatedAt:   s.CreatedAt,
 		Labels:      s.Labels,

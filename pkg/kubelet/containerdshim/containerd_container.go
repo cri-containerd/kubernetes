@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/docker/containerd/api/services/execution"
+	"github.com/docker/containerd/api/types/container"
 	"github.com/docker/containerd/api/types/mount"
 	protobuf "github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
@@ -40,6 +41,7 @@ import (
 // containerStore is used to store container metadata.
 // TODO: Consider to checkpoint ourselves or use containerd metadata store.
 var containerStore map[string]*runtimeapi.ContainerStatus = map[string]*runtimeapi.ContainerStatus{}
+var containerToSandbox map[string]string = map[string]string{}
 var containerStoreLock sync.RWMutex
 
 // P0
@@ -54,6 +56,7 @@ func (cs *containerdService) ListContainers(filter *runtimeapi.ContainerFilter) 
 	var containers []*runtimeapi.Container
 	for _, status := range containerStore {
 		container := statusToContainer(status)
+		container.PodSandboxId = containerToSandbox[container.Id]
 		// Set default state as exited, because any container without running
 		// containerd container is in exited state.
 		container.State = runtimeapi.ContainerState_CONTAINER_EXITED
@@ -66,18 +69,53 @@ func (cs *containerdService) ListContainers(filter *runtimeapi.ContainerFilter) 
 		containers = append(containers, container)
 	}
 
-	// Only support state filter now.
-	// TODO Add other filters, especially label filter.
 	if filter != nil {
-		var filtered []*runtimeapi.Container
+		if filter.Id != "" {
+			var filtered []*runtimeapi.Container
+			for _, c := range containers {
+				if filter.Id == c.Id {
+					filtered = append(filtered, c)
+				}
+			}
+			containers = filtered
+		}
+
 		if filter.State != nil {
+			var filtered []*runtimeapi.Container
 			for _, c := range containers {
 				if c.State == filter.GetState().State {
 					filtered = append(filtered, c)
 				}
 			}
+			containers = filtered
 		}
-		containers = filtered
+
+		if filter.PodSandboxId != "" {
+			var filtered []*runtimeapi.Container
+			for _, c := range containers {
+				if filter.PodSandboxId == c.PodSandboxId {
+					filtered = append(filtered, c)
+				}
+			}
+			containers = filtered
+		}
+
+		if filter.LabelSelector != nil {
+			var filtered []*runtimeapi.Container
+			for _, c := range containers {
+				match := true
+				for k, v := range filter.LabelSelector {
+					if c.Labels[k] != v {
+						match = false
+						break
+					}
+				}
+				if match {
+					filtered = append(filtered, c)
+				}
+			}
+			containers = filtered
+		}
 	}
 	return containers, nil
 }
@@ -85,6 +123,7 @@ func (cs *containerdService) ListContainers(filter *runtimeapi.ContainerFilter) 
 // CreateContainer creates a new container in the given PodSandbox
 // P0
 func (cs *containerdService) CreateContainer(podSandboxID string, containerConfig *runtimeapi.ContainerConfig, sandboxConfig *runtimeapi.PodSandboxConfig) (string, error) {
+	// TODO Report error if already exist.
 	glog.V(2).Infof("CreateContainer for pod %s", podSandboxID)
 	if podSandboxID == "" {
 		return "", fmt.Errorf("PodSandboxId should not be empty")
@@ -96,22 +135,16 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 		return "", fmt.Errorf("sandbox config is nil for container %q", containerConfig.GetMetadata().GetName())
 	}
 
-	// mikebrow todo lookup the pod by id (for poc going without a pod datastructure)
-
-	// TODO(P0): Current CRI integration highly rely on label filter.
-	// mikebrow todo labels and annotations
-	// labels := makeLabels(config.GetLabels(), config.GetAnnotations())
-	// Apply a the container type label.
-	// labels[containerTypeLabelKey] = containerTypeLabelContainer
-	// Write the container log path in the labels.
-	// labels[containerLogPathLabelKey] = filepath.Join(sandboxConfig.LogDirectory, config.LogPath)
-	// Write the sandbox ID in the labels.
-	// labels[sandboxIDLabelKey] = podSandboxID
-
-	name := containerConfig.GetMetadata().GetName()
-	if name == "" {
-		return "", fmt.Errorf("CreateContainerRequest.ContainerConfig.Name is empty")
+	// Get pod sandbox info
+	sandbox, err := cs.containerService.Info(gocontext.Background(), &execution.InfoRequest{ID: podSandboxID})
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod sandbox %q: %v", podSandboxID, err)
 	}
+	if sandbox.Status != container.Status_RUNNING {
+		return "", fmt.Errorf("pod sandbox is not running: %q", sandbox.Status)
+	}
+	sandboxPid := sandbox.Pid
+
 	// mikebrow TODO containerID must be unique crio guys are using stringid.GenerateNonCryptoID() then insuring uniqueness with storage
 	containerID := dockershim.MakeContainerName(sandboxConfig, containerConfig)
 
@@ -126,18 +159,6 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 		return "", err
 	}
 
-	// mikebrow for now configure to bind mount the rootfs
-	rootfs := []*mount.Mount{
-		{
-			Type:   "bind",
-			Source: rootfsPath,
-			Options: []string{
-				"rw",
-				"rbind",
-			},
-		},
-	}
-
 	var processArgs []string
 	if containerConfig.GetCommand() != nil {
 		processArgs = append(processArgs, containerConfig.GetCommand()...)
@@ -147,7 +168,21 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 	}
 
 	// TODO: Set other configs, such as envs, working directory etc.
+	// TODO: Use runtime-tools to generate spec when the runc version in containerd is updated.
 	s := defaultOCISpec(containerID, processArgs, rootfsPath, containerConfig.GetTty())
+
+	// Set cgroup parent
+	if sandboxConfig.GetLinux().GetCgroupParent() != "" && s.Linux != nil {
+		cgroupPath := filepath.Join(sandboxConfig.GetLinux().GetCgroupParent(), containerID)
+		s.Linux.CgroupsPath = &cgroupPath
+	}
+
+	// TODO What namespace should be shared?
+	if s.Linux != nil {
+		s.Linux.Namespaces = addOrReplaceNamespace(s.Linux.Namespaces, specs.PIDNamespace, fmt.Sprintf("/proc/%d/ns/pid", sandboxPid))
+		s.Linux.Namespaces = addOrReplaceNamespace(s.Linux.Namespaces, specs.NetworkNamespace, fmt.Sprintf("/proc/%d/ns/net", sandboxPid))
+		s.Linux.Namespaces = addOrReplaceNamespace(s.Linux.Namespaces, specs.IPCNamespace, fmt.Sprintf("/proc/%d/ns/ipc", sandboxPid))
+	}
 
 	data, err := json.Marshal(s)
 	if err != nil {
@@ -159,7 +194,17 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 			TypeUrl: specs.Version,
 			Value:   data,
 		},
-		Rootfs:   rootfs,
+		// mikebrow for now configure to bind mount the rootfs
+		Rootfs: []*mount.Mount{
+			{
+				Type:   "bind",
+				Source: rootfsPath,
+				Options: []string{
+					"rw",
+					"rbind",
+				},
+			},
+		},
 		Runtime:  "linux",
 		Terminal: containerConfig.GetTty(),
 		Stdin:    filepath.Join(containerDir, "stdin"), // mikebrow TODO needed for console
@@ -180,10 +225,11 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 
 	containerStoreLock.Lock()
 	defer containerStoreLock.Unlock()
+	containerToSandbox[containerID] = podSandboxID
 	containerStore[containerID] = &runtimeapi.ContainerStatus{
 		Id:          containerID,
 		Metadata:    containerConfig.GetMetadata(),
-		CreatedAt:   time.Now().Unix(),
+		CreatedAt:   time.Now().UnixNano(),
 		Image:       containerConfig.GetImage(),
 		ImageRef:    isImagePulled(containerConfig.GetImage().GetImage()),
 		Labels:      containerConfig.GetLabels(),
@@ -196,6 +242,8 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 // StartContainer starts the container.
 // P0
 func (cs *containerdService) StartContainer(containerID string) error {
+	containerStoreLock.Lock()
+	defer containerStoreLock.Unlock()
 	glog.V(2).Infof("StartContainer called with %s", containerID)
 	if _, ok := containerStore[containerID]; !ok {
 		return fmt.Errorf("container not found %s", containerID)
@@ -204,23 +252,30 @@ func (cs *containerdService) StartContainer(containerID string) error {
 	if err != nil {
 		return err
 	}
-	containerStore[containerID].StartedAt = time.Now().Unix()
+	containerStore[containerID].StartedAt = time.Now().UnixNano()
 	return nil
 }
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
 // P0
 func (cs *containerdService) StopContainer(containerID string, timeout int64) error {
+	containerStoreLock.Lock()
+	defer containerStoreLock.Unlock()
 	glog.V(2).Infof("StopContainer called with %s", containerID)
 	// TODO Support grace period.
 	if _, ok := containerStore[containerID]; !ok {
 		return fmt.Errorf("container not found %s", containerID)
 	}
+	// TODO Not return error when the container is already stopped.
 	_, err := cs.containerService.Delete(gocontext.Background(), &execution.DeleteRequest{ID: containerID})
 	if err != nil {
+		if !strings.Contains(err.Error(), "container does not exist") {
+			glog.V(2).Infof("Container %q is already stopped", containerID)
+			return nil
+		}
 		return err
 	}
-	containerStore[containerID].FinishedAt = time.Now().Unix()
+	containerStore[containerID].FinishedAt = time.Now().UnixNano()
 	return err
 }
 
@@ -228,11 +283,14 @@ func (cs *containerdService) StopContainer(containerID string, timeout int64) er
 // should be force removed.
 // P1
 func (cs *containerdService) RemoveContainer(containerID string) error {
+	containerStoreLock.Lock()
+	defer containerStoreLock.Unlock()
 	glog.V(2).Infof("RemoveContainer called with %s", containerID)
 	if _, ok := containerStore[containerID]; !ok {
 		return fmt.Errorf("container not found %s", containerID)
 	}
 	// TODO Support log, keep log and remove container
+	// TODO Return error or stop the container if the container is still running.
 	containerDir := getContainerDir(containerID)
 	rootfsPath := filepath.Join(containerDir, "rootfs")
 	if err := exec.Command("umount", rootfsPath).Run(); err != nil {
@@ -242,12 +300,15 @@ func (cs *containerdService) RemoveContainer(containerID string) error {
 		return err
 	}
 	delete(containerStore, containerID)
+	delete(containerToSandbox, containerID)
 	return nil
 }
 
 // ContainerStatus returns status of the container.
 // P0
 func (cs *containerdService) ContainerStatus(containerID string) (*runtimeapi.ContainerStatus, error) {
+	containerStoreLock.RLock()
+	defer containerStoreLock.RUnlock()
 	glog.V(4).Infof("ContainerStatus called with %s", containerID)
 	status, ok := containerStore[containerID]
 	if !ok {
