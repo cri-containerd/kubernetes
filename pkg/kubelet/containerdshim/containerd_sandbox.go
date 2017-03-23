@@ -114,7 +114,7 @@ func (cs *containerdService) RunPodSandbox(config *runtimeapi.PodSandboxConfig) 
 		Stdout:   filepath.Join(sandboxDir, "stdout"),
 		Stderr:   filepath.Join(sandboxDir, "stderr"),
 	}
-	_, err = prepareStdio(create.Stdin, create.Stdout, create.Stderr, create.Terminal)
+	stream, err := prepareStdio(create.Stdin, create.Stdout, create.Stderr, create.Terminal)
 	if err != nil {
 		return "", err
 	}
@@ -126,6 +126,8 @@ func (cs *containerdService) RunPodSandbox(config *runtimeapi.PodSandboxConfig) 
 	if err != nil {
 		return "", err
 	}
+	// We don't need any stream for the infra container, just close them
+	stream.Close()
 
 	sandboxStoreLock.Lock()
 	defer sandboxStoreLock.Unlock()

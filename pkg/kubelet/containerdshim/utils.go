@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync"
 	"syscall"
 	"time"
 
@@ -176,11 +175,23 @@ func getContainerDir(id string) string {
 	return filepath.Join(containerdCRIRoot, id)
 }
 
-func prepareStdio(stdin, stdout, stderr string, console bool) (*sync.WaitGroup, error) {
-	var wg sync.WaitGroup
+type stream struct {
+	stdin  io.WriteCloser
+	stdout io.ReadCloser
+	stderr io.ReadCloser
+}
+
+func (s *stream) Close() {
+	s.stdin.Close()
+	s.stdout.Close()
+	s.stderr.Close()
+}
+
+func prepareStdio(stdin, stdout, stderr string, console bool) (*stream, error) {
 	ctx := gocontext.Background()
-
-	f, err := fifo.OpenFifo(ctx, stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	var s stream
+	var err error
+	s.stdin, err = fifo.OpenFifo(ctx, stdin, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
 	if err != nil {
 		return nil, err
 	}
@@ -188,13 +199,9 @@ func prepareStdio(stdin, stdout, stderr string, console bool) (*sync.WaitGroup, 
 		if err != nil {
 			c.Close()
 		}
-	}(f)
-	go func(w io.WriteCloser) {
-		io.Copy(w, os.Stdin)
-		w.Close()
-	}(f)
+	}(s.stdin)
 
-	f, err = fifo.OpenFifo(ctx, stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	s.stdout, err = fifo.OpenFifo(ctx, stdout, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
 	if err != nil {
 		return nil, err
 	}
@@ -202,15 +209,9 @@ func prepareStdio(stdin, stdout, stderr string, console bool) (*sync.WaitGroup, 
 		if err != nil {
 			c.Close()
 		}
-	}(f)
-	wg.Add(1)
-	go func(r io.ReadCloser) {
-		io.Copy(os.Stdout, r)
-		r.Close()
-		wg.Done()
-	}(f)
+	}(s.stdout)
 
-	f, err = fifo.OpenFifo(ctx, stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
+	s.stderr, err = fifo.OpenFifo(ctx, stderr, syscall.O_RDONLY|syscall.O_CREAT|syscall.O_NONBLOCK, 0700)
 	if err != nil {
 		return nil, err
 	}
@@ -218,17 +219,9 @@ func prepareStdio(stdin, stdout, stderr string, console bool) (*sync.WaitGroup, 
 		if err != nil {
 			c.Close()
 		}
-	}(f)
-	if !console {
-		wg.Add(1)
-		go func(r io.ReadCloser) {
-			io.Copy(os.Stderr, r)
-			r.Close()
-			wg.Done()
-		}(f)
-	}
+	}(s.stderr)
 
-	return &wg, nil
+	return &s, nil
 }
 
 func getShimClient(id string) (shim.ShimClient, error) {

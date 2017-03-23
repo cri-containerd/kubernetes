@@ -42,6 +42,7 @@ import (
 // TODO: Consider to checkpoint ourselves or use containerd metadata store.
 var containerStore map[string]*runtimeapi.ContainerStatus = map[string]*runtimeapi.ContainerStatus{}
 var containerToSandbox map[string]string = map[string]string{}
+var containerToStream map[string]*stream = map[string]*stream{}
 var containerStoreLock sync.RWMutex
 
 // P0
@@ -211,7 +212,9 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 		Stdout:   filepath.Join(containerDir, "stdout"),
 		Stderr:   filepath.Join(containerDir, "stderr"),
 	}
-	_, err = prepareStdio(create.Stdin, create.Stdout, create.Stderr, create.Terminal)
+	// TODO: We should create a separate goroutine to handle stdout/stderr, and close them when
+	// the other end is closed. We just do best effort cleanup for the POC.
+	stream, err := prepareStdio(create.Stdin, create.Stdout, create.Stderr, create.Terminal)
 	if err != nil {
 		return "", err
 	}
@@ -220,12 +223,19 @@ func (cs *containerdService) CreateContainer(podSandboxID string, containerConfi
 	glog.V(2).Infof("CreateContainer for container %s container directory %s", containerID, containerDir)
 	response, err := cs.containerService.Create(gocontext.Background(), create)
 	if err != nil {
+		stream.Close()
 		return "", err
+	}
+
+	// Close stdin if no stdin is allowed.
+	if !containerConfig.Stdin {
+		stream.stdin.Close()
 	}
 
 	containerStoreLock.Lock()
 	defer containerStoreLock.Unlock()
 	containerToSandbox[containerID] = podSandboxID
+	containerToStream[containerID] = stream
 	containerStore[containerID] = &runtimeapi.ContainerStatus{
 		Id:          containerID,
 		Metadata:    containerConfig.GetMetadata(),
@@ -275,6 +285,7 @@ func (cs *containerdService) StopContainer(containerID string, timeout int64) er
 		}
 		return err
 	}
+
 	containerStore[containerID].FinishedAt = time.Now().UnixNano()
 	return err
 }
@@ -300,6 +311,10 @@ func (cs *containerdService) RemoveContainer(containerID string) error {
 		return err
 	}
 	delete(containerStore, containerID)
+	// Close here for the POC.
+	// TODO Better handling this.
+	containerToStream[containerID].Close()
+	delete(containerToStream, containerID)
 	delete(containerToSandbox, containerID)
 	return nil
 }
