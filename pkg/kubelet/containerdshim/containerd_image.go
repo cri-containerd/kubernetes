@@ -136,7 +136,7 @@ func pullImage(image string) error {
 // image must be image reference, returns cached image digest.
 func isImagePulled(image string) string {
 	imageStoreLock.RLock()
-	defer imageStore.RUnLock()
+	defer imageStoreLock.RUnlock()
 	// Try digest first
 	if _, ok := imageStore[image]; ok {
 		return image
